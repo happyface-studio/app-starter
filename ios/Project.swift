@@ -305,10 +305,13 @@ func tuistProject() -> Project {
 			])
 		)
 		appDependencies.append(TargetDependency.target(name: targetName))
+		// Same as OneSignal: the app must link LiveKit too, or its dynamic WebRTC framework isn't embedded.
+		appDependencies.append(TargetDependency.package(product: "LiveKit", type: .runtime))
+		// LiveKit 2.17 uses swift-tools-version 6.1, so this needs Xcode 16.3+.
 		projectPackages.append(
 			.remote(
 				url: "https://github.com/livekit/client-sdk-swift.git",
-				requirement: .upToNextMinor(from: "2.17.0")
+				requirement: .exact("2.17.0")
 			)
 		)
 		// Keep call audio alive when the app is backgrounded mid-call.

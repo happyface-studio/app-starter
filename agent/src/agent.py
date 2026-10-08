@@ -37,6 +37,7 @@ from livekit.agents.beta.tools import EndCallTool
 
 from notify import push
 from persona import (
+    HANDBACK_INSTRUCTIONS,
     HANDOFF_LINES,
     UNASSIGNED_LINES,
     CallInfo,
@@ -217,22 +218,37 @@ async def entrypoint(ctx: JobContext) -> None:
         if role in ("user", "assistant"):
             log.add_line(role, item.text_content or "")
 
+    owner_on_line: set[str] = set()
+
     @ctx.room.local_participant.register_rpc_method("deskmates.handoff")
     async def _handoff(data: rtc.RpcInvocationData) -> str:
         """The owner jumped in from the app: say a quick line, then go quiet."""
         if not data.caller_identity.startswith(OWNER_IDENTITY_PREFIX):
             raise rtc.RpcError(rtc.RpcError.ErrorCode.APPLICATION_ERROR, "owner only")
+        owner_on_line.add(data.caller_identity)
 
         async def go_quiet() -> None:
             await session.interrupt()
-            handle = session.say(HANDOFF_LINES[language_of(desk)], allow_interruptions=False)
-            await handle
+            await session.say(HANDOFF_LINES[language_of(desk)], allow_interruptions=False)
             session.input.set_audio_enabled(False)
             session.output.set_audio_enabled(False)
             log.update(status="human", agent_state=None)
 
         asyncio.create_task(go_quiet())
         return "ok"
+
+    @ctx.room.on("participant_disconnected")
+    def _on_participant_left(p: rtc.RemoteParticipant) -> None:
+        """If the owner leaves a call they took over, the deskmate picks it back up."""
+        if p.identity not in owner_on_line:
+            return
+        owner_on_line.discard(p.identity)
+        if owner_on_line or log.finished:
+            return
+        session.input.set_audio_enabled(True)
+        session.output.set_audio_enabled(True)
+        log.update(status="active")
+        session.generate_reply(instructions=HANDBACK_INSTRUCTIONS)
 
     audio_input = room_io.AudioInputOptions()
     if noise_cancellation is not None:

@@ -73,6 +73,7 @@ public final class OfficeStore: ObservableObject {
 			(self.desks, self.lines, self.calls) = try await (desks, lines, calls)
 			hasLoaded = true
 		} catch {
+			if error is CancellationError || (error as? URLError)?.code == .cancelled { return }
 			Analytics.capture(.error, id: "office_load", longDescription: "\(error)", source: .db)
 			showError(error)
 		}
@@ -87,13 +88,13 @@ public final class OfficeStore: ObservableObject {
 
 	public func connectRealtime() async {
 		guard channel == nil, let userID = db.currentUser?.id.uuidString.lowercased() else { return }
-		let channel = client.channel("office-\(userID)")
-		let callChanges = channel.postgresChange(
+		let newChannel = client.channel("office-\(userID)")
+		let callChanges = newChannel.postgresChange(
 			AnyAction.self, schema: "public", table: "calls", filter: "user_id=eq.\(userID)")
-		let lineChanges = channel.postgresChange(
+		let lineChanges = newChannel.postgresChange(
 			AnyAction.self, schema: "public", table: "phone_lines", filter: "user_id=eq.\(userID)")
-		await channel.subscribe()
-		self.channel = channel
+		await newChannel.subscribe()
+		channel = newChannel
 
 		realtimeTasks = [
 			Task { [weak self] in
@@ -125,8 +126,10 @@ public final class OfficeStore: ObservableObject {
 				calls.removeAll { $0.id == call.id }
 				calls.insert(call, at: 0)
 			case .update(let action):
-				guard let call = try? action.decodeRecord(as: Call.self, decoder: Self.realtimeDecoder) else { return }
+				guard var call = try? action.decodeRecord(as: Call.self, decoder: Self.realtimeDecoder) else { return }
 				if let index = calls.firstIndex(where: { $0.id == call.id }) {
+					if action.record["transcript"] == nil { call.transcript = calls[index].transcript }
+					if action.record["message"] == nil { call.message = calls[index].message }
 					calls[index] = call
 				} else {
 					calls.insert(call, at: 0)
@@ -334,8 +337,12 @@ public final class OfficeStore: ObservableObject {
 	}
 
 	public func hangUp(_ call: Call) async throws {
+		try await hangUp(callID: call.id)
+	}
+
+	public func hangUp(callID: UUID) async throws {
 		struct Body: Encodable { let call_id: UUID }
-		let _: OK = try await invoke("end-call", Body(call_id: call.id))
+		let _: OK = try await invoke("end-call", Body(call_id: callID))
 	}
 
 	public func delete(_ call: Call) async throws {
@@ -359,6 +366,7 @@ public final class OfficeStore: ObservableObject {
 		}
 	}
 
+	@discardableResult
 	private func perform<T>(_ id: String, _ work: () async throws -> T) async throws -> T {
 		do {
 			let result = try await work()

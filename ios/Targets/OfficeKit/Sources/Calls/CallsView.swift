@@ -10,6 +10,13 @@ public struct CallsView: View {
 	public init() {}
 
 	public var body: some View {
+		SignedInGate(prompt: "Sign in to see your calls") {
+			callList
+		}
+		.captureViewActivity(as: "CallsView")
+	}
+
+	private var callList: some View {
 		NavigationStack {
 			List {
 				let messages = office.calls.filter { $0.message != nil }.prefix(5)
@@ -48,8 +55,6 @@ public struct CallsView: View {
 			.navigationTitle("Calls")
 			.refreshable { await office.load() }
 		}
-		.requireLogin(db: db, navTitle: "Sign in to see your calls", onCancel: {})
-		.captureViewActivity(as: "CallsView")
 	}
 }
 

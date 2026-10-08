@@ -149,3 +149,7 @@ revoke insert, update on public.calls from anon, authenticated;
 -- ---------------------------------------------------------------------------
 alter publication supabase_realtime add table public.calls;
 alter publication supabase_realtime add table public.phone_lines;
+
+-- Filtered Realtime subscriptions only receive DELETE events with full replica identity.
+alter table public.calls replica identity full;
+alter table public.phone_lines replica identity full;

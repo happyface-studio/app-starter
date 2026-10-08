@@ -31,6 +31,7 @@ extension DB {
 					} else {
 						self.authState = .signedOut
 					}
+					self.hasResolvedAuth = true
 					additionalHandler(event, session)
 				}
 			}

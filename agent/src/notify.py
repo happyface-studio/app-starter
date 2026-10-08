@@ -32,7 +32,8 @@ async def push(
     payload = {
         "app_id": ONESIGNAL_APP_ID,
         "target_channel": "push",
-        "include_aliases": {"external_id": [user_id]},
+        # The app logs in with Swift's uppercase UUID string; Postgres hands us lowercase.
+        "include_aliases": {"external_id": sorted({user_id.lower(), user_id.upper()})},
         "headings": {"en": title},
         "contents": {"en": body},
         "data": {"call_id": call_id, "inAppSymbol": symbol, "inAppColor": "#E8A33D"},

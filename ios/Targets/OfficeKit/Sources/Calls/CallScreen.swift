@@ -65,14 +65,19 @@ struct CallScreen: View {
 // MARK: - Talking to a deskmate in the app
 
 private struct TalkView: View {
+	@EnvironmentObject private var office: OfficeStore
+
 	let desk: Desk
+	let callID: UUID
 	let onEnd: () -> Void
 
 	@StateObject private var session: Session
+	@State private var agentJoined = false
 	@State private var micOn = true
 
 	init(desk: Desk, credentials: CallCredentials, onEnd: @escaping () -> Void) {
 		self.desk = desk
+		self.callID = credentials.callID
 		self.onEnd = onEnd
 		_session = StateObject(
 			wrappedValue: Session(
@@ -104,7 +109,7 @@ private struct TalkView: View {
 				}
 				RoundControl(systemImage: "phone.down.fill", label: "End", tint: .red) {
 					Task {
-						await session.end()
+						await hangUp()
 						onEnd()
 					}
 				}
@@ -112,23 +117,44 @@ private struct TalkView: View {
 			.padding(.bottom, 24)
 		}
 		.task { await session.start() }
-		.onDisappear { Task { await session.end() } }
+		.onDisappear { Task { await hangUp() } }
+		.onChange(of: session.agent.isConnected) { _, connected in
+			if connected { agentJoined = true }
+		}
 		.sensoryFeedback(.impact(weight: .light), trigger: session.agent.agentState)
 	}
 
+	/// Leaving the room isn't enough if the agent never joined, so also close the call row.
+	private func hangUp() async {
+		await session.end()
+		try? await office.hangUp(callID: callID)
+	}
+
+	// Agent starts out `.disconnected` (which reads as finished), so "finished" only counts
+	// once the agent has actually joined or the SDK gave up waiting.
+	private var isWaitingForAgent: Bool {
+		!agentJoined && session.error == nil && session.agent.error == nil
+	}
+
 	private var activity: DeskActivity {
+		if isWaitingForAgent { return .ringing }
 		switch session.agent.agentState {
-			case .speaking: .speaking
-			case .thinking: .thinking
-			case .listening: .listening
-			default: session.agent.isPending ? .ringing : .idle
+			case .speaking: return .speaking
+			case .thinking: return .thinking
+			case .listening: return .listening
+			default: return .idle
 		}
 	}
 
 	private var status: String {
 		if let error = session.error { return error.localizedDescription }
-		if session.agent.isFinished { return session.agent.error == nil ? "Call ended" : "\(desk.name) didn't pick up" }
-		if session.agent.isPending { return "Calling \(desk.name)…" }
+		switch session.agent.error {
+			case .timeout?: return "\(desk.name) didn't pick up"
+			case .left?: return "\(desk.name) hung up"
+			case nil: break
+		}
+		if isWaitingForAgent { return "Calling \(desk.name)…" }
+		if session.agent.isFinished { return "Call ended" }
 		switch session.agent.agentState {
 			case .speaking: return "Talking"
 			case .thinking: return "Thinking"

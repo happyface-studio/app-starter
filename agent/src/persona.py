@@ -31,6 +31,11 @@ HANDOFF_LINES = {
     "multi": "One moment, I'm putting you through now.",
 }
 
+HANDBACK_INSTRUCTIONS = (
+    "The owner just stepped off the call and handed it back to you. Let the caller know you're "
+    "back in one short sentence and ask if there's anything else you can help with."
+)
+
 UNASSIGNED_LINES = {
     "en": "Sorry, nobody is sitting at this desk right now. Please try again later. Goodbye!",
     "de": "Entschuldigung, an diesem Platz sitzt gerade niemand. Bitte versuchen Sie es später noch einmal. Auf Wiederhören!",

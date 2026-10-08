@@ -45,6 +45,9 @@ public class DB: ObservableObject {
 	/// SupabaseAuth State (use this to check auth state, updates with currentUser)
 	@Published public var authState: AuthState = .signedOut
 
+	/// False until Supabase reports the stored session (or its absence) at launch.
+	@Published public internal(set) var hasResolvedAuth = false
+
 	/// For Supabase to keep track of the Auth State (see AuthGeneral.swift)
 	internal var authStateHandler: AuthStateChangeListenerRegistration?
 

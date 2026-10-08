@@ -141,8 +141,8 @@ public struct Call: Codable, Identifiable, Hashable, Sendable {
 	public let roomName: String
 	public let status: CallStatus
 	public let agentState: String?
-	public let transcript: [TranscriptLine]
-	public let message: TakenMessage?
+	public internal(set) var transcript: [TranscriptLine]
+	public internal(set) var message: TakenMessage?
 	public let error: String?
 	public let startedAt: Date
 	public let answeredAt: Date?
@@ -158,6 +158,26 @@ public struct Call: Codable, Identifiable, Hashable, Sendable {
 		case startedAt = "started_at"
 		case answeredAt = "answered_at"
 		case endedAt = "ended_at"
+	}
+
+	/// Realtime updates leave out large jsonb columns that didn't change (Postgres TOAST), so
+	/// `transcript` and `message` may be missing; OfficeStore fills them in from the previous row.
+	public init(from decoder: Decoder) throws {
+		let c = try decoder.container(keyedBy: CodingKeys.self)
+		id = try c.decode(UUID.self, forKey: .id)
+		deskID = try c.decodeIfPresent(UUID.self, forKey: .deskID)
+		lineID = try c.decodeIfPresent(UUID.self, forKey: .lineID)
+		direction = try c.decode(CallDirection.self, forKey: .direction)
+		remoteNumber = try c.decodeIfPresent(String.self, forKey: .remoteNumber)
+		roomName = try c.decode(String.self, forKey: .roomName)
+		status = try c.decode(CallStatus.self, forKey: .status)
+		agentState = try c.decodeIfPresent(String.self, forKey: .agentState)
+		transcript = try c.decodeIfPresent([TranscriptLine].self, forKey: .transcript) ?? []
+		message = try c.decodeIfPresent(TakenMessage.self, forKey: .message)
+		error = try c.decodeIfPresent(String.self, forKey: .error)
+		startedAt = try c.decode(Date.self, forKey: .startedAt)
+		answeredAt = try c.decodeIfPresent(Date.self, forKey: .answeredAt)
+		endedAt = try c.decodeIfPresent(Date.self, forKey: .endedAt)
 	}
 
 	public var isLive: Bool { status.isLive }

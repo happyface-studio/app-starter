@@ -32,7 +32,7 @@ enum CallRoute: Identifiable, Hashable {
 
 public struct OfficeView: View {
 	@EnvironmentObject private var db: DB
-	@EnvironmentObject private var office: OfficeStore
+	@EnvironmentObject private var store: OfficeStore
 
 	@State private var route: OfficeRoute?
 	@State private var callRoute: CallRoute?
@@ -40,12 +40,28 @@ public struct OfficeView: View {
 	public init() {}
 
 	public var body: some View {
+		SignedInGate(prompt: "Sign in to open your office") {
+			officeFloor
+		}
+		.task(id: db.authState == .signedIn) {
+			guard db.authState == .signedIn else {
+				await store.disconnectRealtime()
+				store.reset()
+				return
+			}
+			await store.connectRealtime()
+			await store.load()
+		}
+		.captureViewActivity(as: "OfficeView")
+	}
+
+	private var officeFloor: some View {
 		NavigationStack {
 			ScrollView {
 				VStack(spacing: 0) {
 					OfficeSceneView(seats: seats) { seat in
 						Haptics.impact(style: .light)
-						if let desk = office.desk(atSeat: seat) {
+						if let desk = store.desk(atSeat: seat) {
 							route = .desk(desk.id)
 						} else {
 							route = .hire(seat: seat)
@@ -75,17 +91,7 @@ public struct OfficeView: View {
 					.tint(Theme.paper)
 				}
 			}
-			.refreshable { await office.load() }
-		}
-		.requireLogin(db: db, navTitle: "Sign in to open your office", onCancel: {})
-		.task(id: db.authState == .signedIn) {
-			guard db.authState == .signedIn else {
-				await office.disconnectRealtime()
-				office.reset()
-				return
-			}
-			await office.load()
-			await office.connectRealtime()
+			.refreshable { await store.load() }
 		}
 		.sheet(item: $route) { route in
 			switch route {
@@ -102,17 +108,16 @@ public struct OfficeView: View {
 		.fullScreenCover(item: $callRoute) { route in
 			CallScreen(route: route)
 		}
-		.captureViewActivity(as: "OfficeView")
 	}
 
 	private var seats: [DeskSnapshot?] {
 		(0..<OfficeStore.seatCount).map { seat in
-			office.desk(atSeat: seat).map { desk in
+			store.desk(atSeat: seat).map { desk in
 				DeskSnapshot(
 					name: desk.name,
 					look: desk.look,
-					hasLine: office.line(for: desk) != nil,
-					activity: DeskActivity(call: office.liveCall(for: desk))
+					hasLine: store.line(for: desk) != nil,
+					activity: DeskActivity(call: store.liveCall(for: desk))
 				)
 			}
 		}
