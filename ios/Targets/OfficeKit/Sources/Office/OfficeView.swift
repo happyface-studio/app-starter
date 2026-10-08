@@ -68,13 +68,30 @@ public struct OfficeView: View {
 						}
 					}
 
-					FloorNotes(callRoute: $callRoute, route: $route)
+					FloorNotes()
 						.padding(.horizontal, 20)
 						.padding(.top, 20)
 						.padding(.bottom, 32)
 				}
 			}
 			.scrollBounceBehavior(.basedOnSize)
+			// The office fills most of the screen, so live calls dock above the tab bar.
+			.safeAreaInset(edge: .bottom, spacing: 0) {
+				if !store.liveCalls.isEmpty {
+					VStack(spacing: 8) {
+						ForEach(store.liveCalls) { call in
+							LiveCallRow(call: call) {
+								callRoute = .listen(callID: call.id)
+							}
+						}
+					}
+					.padding(.horizontal, 12)
+					.padding(.vertical, 8)
+					.background(Theme.carpet)
+					.transition(.move(edge: .bottom).combined(with: .opacity))
+				}
+			}
+			.animation(.snappy, value: store.liveCalls.map(\.id))
 			.background(Theme.carpet.ignoresSafeArea())
 			.navigationTitle("Office")
 			.navigationBarTitleDisplayMode(.inline)
@@ -124,14 +141,12 @@ public struct OfficeView: View {
 	}
 }
 
-/// Plain-language status under the office: who's on a call, or what to do first.
+/// Plain-language hint under the office about what to do next.
 private struct FloorNotes: View {
 	@EnvironmentObject private var office: OfficeStore
-	@Binding var callRoute: CallRoute?
-	@Binding var route: OfficeRoute?
 
 	var body: some View {
-		VStack(alignment: .leading, spacing: 12) {
+		Group {
 			if !office.hasLoaded {
 				ProgressView()
 					.tint(Theme.paper)
@@ -141,15 +156,9 @@ private struct FloorNotes: View {
 					.font(.rounded(.callout))
 					.foregroundStyle(Theme.paper.opacity(0.8))
 					.fixedSize(horizontal: false, vertical: true)
-			} else {
-				ForEach(office.liveCalls) { call in
-					LiveCallRow(call: call) {
-						callRoute = .listen(callID: call.id)
-					}
-				}
+					.frame(maxWidth: .infinity, alignment: .leading)
 			}
 		}
-		.frame(maxWidth: .infinity, alignment: .leading)
 	}
 
 	private var hint: String {

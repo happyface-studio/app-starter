@@ -1,0 +1,549 @@
+<title>Deskmates Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* One visual world: the office carpet at night. Phone on the left, the story of a call on the right. */
+:root {
+  --carpet: #1F4D57;
+  --carpet-deep: #143840;
+  --carpet-edge: #0F2D33;
+  --paper: #F6F1E6;
+  --paper-dim: rgba(246, 241, 230, 0.72);
+  --paper-faint: rgba(246, 241, 230, 0.14);
+  --brass: #E0BC62;
+  --brass-ink: #4A3518;
+  --coral: #E4574A;
+  --mint: #74E0B0;
+  --amber: #F4B23E;
+  --plum: #2B1F2E;
+  --font-pixel: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-body: "Nunito", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--carpet-deep); color: var(--paper); }
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-inline: 16px;
+  padding-block: 32px 48px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.045) 1px, transparent 1.5px) 0 0 / 8px 8px,
+    var(--carpet-deep);
+}
+.stage {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
+  grid-template-areas: "phone intro" "phone details";
+  grid-template-rows: auto 1fr;
+  column-gap: 56px;
+  row-gap: 28px;
+  align-items: start;
+}
+.phone { grid-area: phone; }
+.intro { grid-area: intro; }
+.details { grid-area: details; }
+@media (max-width: 860px) {
+  .stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "phone" "details"; justify-items: center; }
+  .intro, .details { max-width: 520px; width: 100%; }
+}
+
+/* ---------- phone ---------- */
+.phone {
+  width: 100%;
+  max-width: 390px;
+  border-radius: 48px;
+  padding: 12px;
+  background: var(--plum);
+  box-shadow: 0 0 0 2px #3d2e41, 0 30px 60px rgba(0,0,0,0.45);
+}
+.screen {
+  border-radius: 38px;
+  overflow: hidden;
+  background: var(--carpet);
+  display: flex;
+  flex-direction: column;
+  height: 780px;
+  max-height: calc(100vh - 40px);
+  min-height: 640px;
+}
+.statusbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 28px 6px;
+  font-weight: 700; font-size: 15px;
+  background: var(--carpet-deep);
+}
+.statusbar .island { width: 96px; height: 26px; border-radius: 20px; background: #000; }
+.navbar {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: 6px 16px 10px;
+  background: var(--carpet-deep);
+  font-weight: 800; font-size: 17px;
+}
+.navbar .lines { justify-self: end; color: var(--paper); opacity: 0.9; }
+.navbar svg { display: block; }
+.scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.scene { position: relative; line-height: 0; }
+.scene canvas { width: 100%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.seat {
+  position: absolute; border: 0; padding: 0; background: transparent; cursor: pointer;
+  border-radius: 6px;
+}
+.seat:focus-visible { outline: 3px solid var(--mint); outline-offset: -3px; }
+.seat[aria-pressed="true"] { box-shadow: inset 0 0 0 3px rgba(116, 224, 176, 0.75); }
+
+.notes { padding: 16px 16px 24px; display: grid; gap: 10px; }
+.hint { color: var(--paper-dim); font-size: 15px; margin: 0; }
+.callrow {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  background: var(--carpet-deep); border-radius: 14px; padding: 12px;
+}
+.callrow canvas { width: 44px; height: 44px; border-radius: 8px; image-rendering: pixelated; background: var(--carpet-edge); }
+.callrow .who { font-weight: 700; font-size: 14px; }
+.callrow .last { color: var(--paper-dim); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill {
+  font: 700 14px var(--font-body); border: 0; border-radius: 999px; padding: 7px 14px; cursor: pointer;
+  background: var(--mint); color: var(--carpet-edge);
+}
+.pill:focus-visible, .btn:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
+.pill[disabled] { opacity: 0.4; cursor: default; }
+
+.deskcard { display: grid; gap: 10px; }
+.deskcard header { display: flex; align-items: center; gap: 12px; }
+.deskcard canvas { width: 56px; height: 56px; border-radius: 12px; image-rendering: pixelated; background: var(--carpet); }
+.deskcard h3 { margin: 0; font-size: 18px; line-height: 1.2; }
+.deskcard .role { margin: 0; font-size: 14px; color: #6a5d63; }
+.deskcard .number { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 16px; }
+.deskcard .brief { margin: 0; font-size: 14px; color: #4b3f45; }
+.deskcard .meta { font-size: 13px; color: #6a5d63; margin: 0; }
+
+.screen { position: relative; }
+.dock { padding: 8px 12px; background: var(--carpet); display: grid; gap: 8px; }
+.dock:empty { display: none; }
+.sheet-scrim {
+  position: absolute; inset: 0; background: rgba(15, 45, 51, 0.55);
+  display: flex; align-items: flex-end;
+}
+.sheet-scrim[hidden] { display: none; }
+.sheet {
+  width: 100%; background: var(--paper); color: var(--plum);
+  border-radius: 28px 28px 0 0; padding: 10px 20px 32px; display: grid; gap: 12px;
+}
+.sheet .grabber { width: 40px; height: 5px; border-radius: 3px; background: #d6cdbf; justify-self: center; }
+.sheet .bar { display: flex; justify-content: space-between; align-items: center; }
+.sheet .done { font: 700 16px var(--font-body); color: #D9473C; background: none; border: 0; padding: 6px 0; cursor: pointer; }
+.sheet .done:focus-visible { outline: 3px solid #D9473C; outline-offset: 2px; border-radius: 6px; }
+.tabbar {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  padding: 8px 8px 22px; background: var(--carpet-deep);
+  border-top: 1px solid var(--paper-faint);
+  font-size: 11px; font-weight: 700; text-align: center; color: var(--paper-dim);
+}
+.tabbar .on { color: var(--coral); }
+.tabbar svg { display: block; margin: 0 auto 2px; }
+
+/* ---------- story ---------- */
+.intro, .details { display: grid; gap: 28px; min-width: 0; }
+.intro { padding-top: 12px; }
+.intro h1 {
+  font-family: var(--font-pixel); font-weight: 700;
+  font-size: clamp(40px, 7vw, 64px); line-height: 1; margin: 0;
+  letter-spacing: 0.01em;
+  color: var(--brass);
+  text-shadow: 3px 3px 0 var(--brass-ink);
+}
+.lede { font-size: 19px; line-height: 1.55; margin: 0; max-width: 34em; color: var(--paper); text-wrap: pretty; }
+.scenarios { display: grid; gap: 12px; }
+.scenarios h2, .transcript h2, .realness h2 {
+  font-size: 15px; font-weight: 800; margin: 0 0 4px; color: var(--paper-dim); letter-spacing: 0.01em;
+}
+.btnrow { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  font: 700 15px var(--font-body);
+  border: 2px solid var(--plum); border-radius: 12px; padding: 10px 16px; cursor: pointer;
+  background: var(--paper); color: var(--plum);
+  box-shadow: 0 3px 0 var(--plum);
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--plum); }
+.btn.primary { background: var(--coral); color: var(--paper); }
+.btn[disabled] { opacity: 0.45; cursor: default; transform: none; box-shadow: 0 3px 0 var(--plum); }
+
+.transcript { min-width: 0; }
+.log {
+  display: grid; gap: 8px; min-height: 120px; max-height: 300px; overflow-y: auto;
+  padding: 14px; border-radius: 16px; background: var(--carpet-edge);
+}
+.log:empty::before { content: "Start a call to see the conversation here."; color: var(--paper-dim); font-size: 15px; }
+.bubble { max-width: 85%; padding: 8px 12px; border-radius: 14px; font-size: 15px; line-height: 1.4; }
+.bubble.agent { background: rgba(224, 188, 98, 0.22); justify-self: start; }
+.bubble.them { background: var(--paper-faint); justify-self: end; }
+.bubble.you { background: rgba(228, 87, 74, 0.3); justify-self: end; }
+.bubble.sys { justify-self: center; background: none; color: var(--paper-dim); font-size: 13px; padding: 2px; }
+.bubble b { display: block; font-size: 12px; opacity: 0.75; font-weight: 800; }
+
+.realness p { margin: 0; color: var(--paper-dim); font-size: 15px; max-width: 36em; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+
+<main class="stage">
+  <div class="phone" aria-label="Deskmates app preview">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="island" aria-hidden="true"></span><span aria-hidden="true">●●● ▮</span></div>
+      <div class="navbar">
+        <span></span><span>Office</span>
+        <span class="lines" aria-label="Phone lines">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+        </span>
+      </div>
+      <div class="scroll">
+        <div class="scene" id="scene">
+          <canvas id="office" width="96" height="168" role="img" aria-label="Pixel office with six desks"></canvas>
+        </div>
+        <div class="notes" id="notes"></div>
+      </div>
+      <div class="dock" id="dock" aria-live="polite"></div>
+      <nav class="tabbar" aria-label="App tabs (preview)">
+        <span class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M11 21v-3h2v3"/></svg>Office</span>
+        <span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>Calls</span>
+        <span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</span>
+      </nav>
+      <div class="sheet-scrim" id="sheet" hidden>
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+          <div class="grabber" aria-hidden="true"></div>
+          <div class="bar"><span></span><button class="done" id="sheet-done" type="button">Done</button></div>
+          <div id="sheet-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="intro" aria-label="About Deskmates">
+    <h1>Deskmates</h1>
+    <p class="lede">A pocket call center. Hire pixel deskmates, give each one a desk and a real phone number, and they pick up when people call, take messages, and ring people for you. You can listen in on any call from your phone and jump in.</p>
+
+    <div class="scenarios">
+      <h2>Play a call</h2>
+      <div class="btnrow">
+        <button class="btn primary" id="play-in" type="button">Someone calls Otto</button>
+        <button class="btn" id="play-out" type="button">Paula books a table</button>
+        <button class="btn" id="jump" type="button" disabled>Jump in</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="details" aria-label="Call details">
+    <div class="transcript">
+      <h2 id="log-title">Conversation</h2>
+      <div class="log" id="log" aria-live="polite" aria-labelledby="log-title"></div>
+    </div>
+
+    <div class="realness">
+      <h2>What's simulated here</h2>
+      <p>The office and every animation are drawn from the same pixel data as the iOS app. The calls on this page are scripted. In the app, the desks react to real LiveKit calls as they happen, and the transcript streams in live. Tap a desk to see its details.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const ART = {"fixed":{"k":"#2B1F2E","e":"#2B1F2E","m":"#7A2E35","r":"#C9474F","b":"#F2A3A0","g":"#3C4150","G":"#7D8496","l":"#2B1F2E","w":"#F6F1E6","p":"#E4574A","P":"#B23E33","o":"#5C5357","u":"#D9CFB8","U":"#B4A98F","y":"#F4D35E","Y":"#D9B43E","d":"#C98B3F","D":"#9C6A2C","q":"#7A5020","n":"#E0BC62","N":"#A88536","t":"#4A3518","f":"#7083B8","F":"#5A6C9E","T":"#C9CBD3","a":"#2D3557","A":"#3E4870","v":"#5FA86A","V":"#3F7F4C","z":"#B5653A","Z":"#8E4A28","M":"#F6F1E6","x":"#8C6248"},"skin":[["#F6D2B4","#E2AE8C"],["#EDB88B","#D2996B"],["#C98E5E","#AA7144"],["#9C6440","#7E4C2E"],["#6E4428","#55331D"]],"hair":[["#2E2633","#1C1720"],["#6B4127","#4E2E1B"],["#B14D2E","#86371F"],["#E7C76B","#C6A246"],["#BDBAC4","#918E9A"],["#5476D8","#3A57AE"],["#EA82AE","#C65F8D"]],"shirt":[["#E8A33D","#C1822A"],["#2F9C90","#22766C"],["#9C88D8","#7A66B6"],["#EEEBE4","#C8C4BA"],["#5BA661","#438548"],["#3D4F86","#2B3A66"],["#E4574A","#B23E33"],["#3B3641","#27232C"]],"carpet":"#1F4D57","carpetDot":"#25596A","carpetDark":"#1A424B","wall":"#A7BFB0","wallShade":"#93AD9D","baseboard":"#6B5A4A","sky":{"day":["#8ED3F2","#BFE8FA"],"dusk":["#F2A35E","#F6C98A"],"night":["#1E2B57","#2E3E73"]},"amber":"#F4B23E","mint":"#74E0B0","body":["................","................","....kkkkkkkk....","...ksssssssSk...","...ksssssssSk...","...ksssssssSk...","..kSsssssssSSk..","...ksssssssSk...","...ksssssssSk...","...ksssssssSk...","....kSsssssk....",".....kkkkkk.....","......kSSk......","...kkkcSScckk...","..kccccSSccccCk.",".kcccccccccccCk.",".kCcccccccccCCk.",".kCcccccccccCCk."],"face":["................","................","................","................","................",".....e....e.....",".....e....e.....","................","....b......b....",".......mm.......","................","................"],"faceBlink":["................","................","................","................","................",".....s....s.....",".....e....e.....","................","....b......b....",".......mm.......","................","................"],"mouthOpen":["................","................","................","................","................","................","................","................","................","......kmmk......",".......rr.......","................"],"phone":["..kkkkkk..",".kppppppk.","kpPk..kPpk","kkppppppkk","kpwpwpwopk","kPPPPPPPPk",".kkkkkkkk."],"phoneDead":["..kkkkkk..",".kUUUUUUk.","kUDk..kDUk","kkUUUUUUkk","kUwUwUwoUk","kDDDDDDDDk",".kkkkkkkk."],"monitor":[".kkkkkkkk.","kuuuuuuuuk","kuUUUUUuuk","kuuuuuuuuk","kuUUUUUuuk","kuuuuuyyuk","kuuuuuyYuk",".kkkkkkkk.","....kk....","..kkkkkk.."],"mug":["kkkk","kxxk","kMMk","kkkk"],"steam":[[".w..","w...",".w.."],["..w.",".w..","..w."]],"plant":["...v.v...","..vVvVv..",".vVvvvVv.","..vvVvv..","...kkk...","..kzzzk..","..kzZzk..","...kkk..."],"chair":["..kkkkkkkkkkkkkk..",".kaAAAAAAAAAAAAak.","kaAaaaaaaaaaaaaAak","kaaaaaaaaaaaaaaaak","kaaaaaaaaaaaaaaaak","kaaaaaaaaaaaaaaaak","kaaaaaaaaaaaaaaaak","kaaaaaaaaaaaaaaaak"],"hairStyles":[["................",".....kkkkkk.....","....khhhhhhk....","...khhhhhhhHk...","...khhhhHhhhk...","...kh......hk..."],["................",".....kkkkkk.....","....khhhhhhk....","...khhhhhhhHk...","..khhhHhhhhhHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..kkh......hkk..","...kk......kk..."],["......kkkk......",".....khhHhk.....","....kkhhhhkk....","...khhhhhhhHk...","...khHhhhhhhk...","...kh......hk..."],["....kkkkkkkk....","...khhhHhhhhk...","..khhHhhhhHhhk..",".khhhhhhhhhhHhk.",".khHhhhhhhhhhHk.",".khh........hHk.",".khh........hHk.",".kkh........hkk.","..kk........kk.."],["................","................","....kkkkkkkk....","...khHhHhHhHk..."],["................",".....kkkkkk.....","....khhhhhhk....","...khhhhhhhHk...","..khhhhHhhhhHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..khh......hHk..","..khk......khk..","..kk........kk.."]],"accessories":[["................","................","................","................","................","..kk........kk..",".kGgk......kgGk.",".kggk......kggk.","..kk........kk..","...gg...........","....ggG........."],["................","................","................","................","................","....lll..lll....","....l.llll.l....","....lll..lll...."],[],["..........kk.kk.",".........kpkkpk.","..........kk.kk."]],"font":{"A":["###","#.#","###","#.#","#.#"],"B":["##.","#.#","##.","#.#","##."],"C":["###","#..","#..","#..","###"],"D":["##.","#.#","#.#","#.#","##."],"E":["###","#..","##.","#..","###"],"F":["###","#..","##.","#..","#.."],"G":["###","#..","#.#","#.#","###"],"H":["#.#","#.#","###","#.#","#.#"],"I":["###",".#.",".#.",".#.","###"],"J":["..#","..#","..#","#.#","###"],"K":["#.#","#.#","##.","#.#","#.#"],"L":["#..","#..","#..","#..","###"],"M":["#.#","###","###","#.#","#.#"],"N":["##.","#.#","#.#","#.#","#.#"],"O":["###","#.#","#.#","#.#","###"],"P":["###","#.#","###","#..","#.."],"Q":["###","#.#","#.#","###","..#"],"R":["##.","#.#","##.","#.#","#.#"],"S":["###","#..","###","..#","###"],"T":["###",".#.",".#.",".#.",".#."],"U":["#.#","#.#","#.#","#.#","###"],"V":["#.#","#.#","#.#","#.#",".#."],"W":["#.#","#.#","###","###","#.#"],"X":["#.#","#.#",".#.","#.#","#.#"],"Y":["#.#","#.#",".#.",".#.",".#."],"Z":["###","..#",".#.","#..","###"],"0":["###","#.#","#.#","#.#","###"],"1":[".#.","##.",".#.",".#.","###"],"2":["##.","..#",".#.","#..","###"],"3":["##.","..#",".#.","..#","##."],"4":["#.#","#.#","###","..#","..#"],"5":["###","#..","##.","..#","##."],"6":[".##","#..","###","#.#","###"],"7":["###","..#",".#.",".#.",".#."],"8":["###","#.#","###","#.#","###"],"9":["###","#.#","###","..#","##."]," ":["...","...","...","...","..."],"-":["...","...","###","...","..."],".":["...","...","...","...",".#."],"!":[".#.",".#.",".#.","...",".#."],"?":["##.","..#",".#.","...",".#."],"'":[".#.",".#.","...","...","..."],"&":[".#.","#.#",".#.","#.#",".##"]},"fold":{"\u00c4":"A","\u00d6":"O","\u00dc":"U","\u00df":"S","\u00c9":"E","\u00c8":"E","\u00c1":"A","\u00c0":"A","\u00c7":"C","\u00d1":"N"},"L":{"sceneW":96,"wallH":24,"cellW":48,"cellH":48,"rows":3,"sceneH":168,"partition":[2,2,44,16],"chair":[15,17],"char":[16,8],"deskTop":[3,26,42,4],"deskFront":[4,30,40,11],"monitor":[3,17],"phone":[34,19],"mug":[12,23],"plateY":31,"plateH":9,"bubble":[29,0],"nameMax":8,"lamp":[7,4]}};
+</script>
+<script>
+(() => {
+  const L = ART.L;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- desks (example data) ----------
+  const desks = [
+    { name: "Paula", role: "Assistant", look: { skin: 1, hair: 1, hairColor: 2, shirt: 0, accessory: 0 },
+      line: "+49 69 2475 1180", lineNote: "Studio number. Calls in and out.", brief: "Books tables, appointments and deliveries for Simon. Always confirms the date twice." },
+    { name: "Otto", role: "Front desk, Kiez Bikes", look: { skin: 3, hair: 0, hairColor: 0, shirt: 1, accessory: 1 },
+      line: "+1 415 555 0123", lineNote: "LiveKit number. Takes calls only.", brief: "Answers for a bike repair shop. Open Tuesday to Saturday, 10 to 7. Takes a message for anything about an order. Never quotes prices." },
+    { name: "Mia", role: "Receptionist", look: { skin: 0, hair: 2, hairColor: 3, shirt: 2, accessory: 0 },
+      line: "+49 69 2475 1181", lineNote: "Studio number. Calls in and out.", brief: "Answers the studio line, screens sales calls, and passes real questions on." },
+    { name: "Kofi", role: "Night shift", look: { skin: 4, hair: 3, hairColor: 0, shirt: 4, accessory: 2 },
+      line: null, lineNote: "No phone yet. You can still talk to him in the app.", brief: "Covers evenings once he has a number." },
+    null, null,
+  ];
+  const activity = desks.map(() => "idle");
+  let selected = null;
+  let live = null; // { seat, kind, last, human }
+
+  // ---------- renderer (mirrors ios/Tools/pixelart/render.py) ----------
+  const canvas = document.getElementById("office");
+  const ctx = canvas.getContext("2d");
+  const W = L.sceneW, H = L.sceneH;
+  const img = ctx.createImageData(W, H);
+  const hexCache = {};
+  const rgb = (hex) => hexCache[hex] || (hexCache[hex] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)));
+
+  function makeBuf(w, h) { return { w, h, d: new Uint8ClampedArray(w * h * 4) }; }
+  function put(b, x, y, c) {
+    if (!c || x < 0 || y < 0 || x >= b.w || y >= b.h) return;
+    const [r, g, bl] = rgb(c); const i = (y * b.w + x) * 4;
+    b.d[i] = r; b.d[i + 1] = g; b.d[i + 2] = bl; b.d[i + 3] = 255;
+  }
+  function rect(b, x, y, w, h, c) { for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) put(b, xx, yy, c); }
+  function blit(b, sprite, x, y, pal) {
+    sprite.forEach((row, dy) => { for (let dx = 0; dx < row.length; dx++) { const ch = row[dx]; if (ch !== ".") put(b, x + dx, y + dy, pal[ch] || "#FF00FF"); } });
+  }
+  function charPal(look) {
+    const s = ART.skin[look.skin % ART.skin.length], h = ART.hair[look.hairColor % ART.hair.length], c = ART.shirt[look.shirt % ART.shirt.length];
+    return Object.assign({}, ART.fixed, { s: s[0], S: s[1], h: h[0], H: h[1], c: c[0], C: c[1] });
+  }
+  function drawCharacter(b, look, x, y, act, t) {
+    const pal = charPal(look);
+    let bob = Math.floor(t / 8) % 2 === 1 ? 1 : 0;
+    if (act === "listening" && [8, 9, 10, 11].includes(t % 16)) bob = 1;
+    y += bob;
+    blit(b, ART.body, x, y, pal);
+    blit(b, t % 44 < 2 ? ART.faceBlink : ART.face, x, y, pal);
+    if (act === "speaking" && Math.floor(t / 2) % 2 === 0) blit(b, ART.mouthOpen, x, y, pal);
+    blit(b, ART.hairStyles[look.hair % ART.hairStyles.length], x, y, pal);
+    blit(b, ART.accessories[look.accessory % ART.accessories.length], x, y, pal);
+  }
+  function plateText(name) {
+    let up = [...name.toUpperCase()].map((c) => ART.fold[c] || c).filter((c) => ART.font[c]).join("").trim();
+    return up ? up.slice(0, L.nameMax) : "?";
+  }
+  const textWidth = (s) => Math.max(0, s.length * 4 - 1);
+  function drawText(b, s, x, y, c) {
+    [...s].forEach((ch, i) => {
+      const g = ART.font[ART.fold[ch] || ch] || ART.font["?"];
+      g.forEach((row, gy) => { for (let gx = 0; gx < 3; gx++) if (row[gx] === "#") put(b, x + i * 4 + gx, y + gy, c); });
+    });
+  }
+  function drawPlate(b, ox, oy, text, dim) {
+    const tw = textWidth(text), w = Math.max(17, tw + 6), x = ox + Math.floor(L.cellW / 2) - Math.floor(w / 2), y = oy + L.plateY;
+    rect(b, x, y, w, L.plateH, ART.fixed.k);
+    rect(b, x + 1, y + 1, w - 2, L.plateH - 2, dim ? ART.fixed.N : ART.fixed.n);
+    if (!dim) rect(b, x + 1, y + 1, w - 2, 1, "#F2D98C");
+    drawText(b, text, x + Math.floor((w - tw) / 2), y + 2, dim ? "#6E521C" : ART.fixed.t);
+  }
+  function drawBubble(b, x, y) {
+    const k = ART.fixed.k;
+    rect(b, x + 1, y, 13, 9, k); rect(b, x, y + 1, 15, 7, k); rect(b, x + 1, y + 1, 13, 7, ART.fixed.w);
+    put(b, x + 1, y + 9, k); put(b, x, y + 10, k);
+  }
+  function drawWall(b, t, date) {
+    const k = ART.fixed.k, w = ART.fixed.w;
+    const hr = date.getHours();
+    const sky = hr >= 7 && hr < 17 ? "day" : (hr === 6 || (hr >= 17 && hr < 20)) ? "dusk" : "night";
+    rect(b, 0, 0, W, L.wallH, ART.wall); rect(b, 0, L.wallH - 5, W, 3, ART.wallShade); rect(b, 0, L.wallH - 2, W, 2, ART.baseboard);
+    const [lo, hi] = ART.sky[sky];
+    for (const wx of [7, 63]) {
+      rect(b, wx - 1, 2, 28, 16, k); rect(b, wx, 3, 26, 14, w); rect(b, wx + 1, 4, 24, 12, lo); rect(b, wx + 1, 4, 24, 4, hi);
+      rect(b, wx + 12, 4, 1, 12, w); rect(b, wx + 1, 9, 24, 1, w);
+      if (sky === "night") { for (const [sx, sy] of [[3, 6], [17, 5], [8, 12], [21, 13]]) if ((Math.floor(t / 6) + sx) % 5) put(b, wx + sx, sy, "#F6F1E6"); }
+      else if (sky === "day") { const cx = wx + 2 + Math.floor(t / 24) % 6; rect(b, cx, 6, 5, 2, "#FFFFFF"); rect(b, cx + 1, 5, 2, 1, "#FFFFFF"); }
+    }
+    const cx = 48, cy = 10;
+    for (let dx = -5; dx <= 5; dx++) for (let dy = -5; dy <= 5; dy++) { const d2 = dx * dx + dy * dy; if (d2 <= 25) put(b, cx + dx, cy + dy, d2 > 16 ? k : w); }
+    const hour = hr + date.getMinutes() / 60;
+    for (const [len, ang, col] of [[2, (hour % 12) / 12 * 2 * Math.PI, k], [3, (hour % 1) * 2 * Math.PI, ART.fixed.p]])
+      for (let s = 1; s <= len; s++) put(b, cx + Math.round(Math.sin(ang) * s), cy - Math.round(Math.cos(ang) * s), col);
+    put(b, cx, cy, k);
+  }
+  function drawCarpet(b) {
+    rect(b, 0, L.wallH, W, H - L.wallH, ART.carpet);
+    for (let y = L.wallH; y < H; y++) { const r = y - L.wallH; if (r % 4 !== 1) continue; for (let x = 0; x < W; x++) if ((x + Math.floor(r / 4) * 2) % 4 === 0) put(b, x, y, ART.carpetDot); }
+    rect(b, 0, L.wallH, W, 1, ART.carpetDark);
+  }
+  function drawCell(b, ox, oy, desk, act, t) {
+    const pal = ART.fixed, [px, py, pw, ph] = L.partition;
+    rect(b, ox + px, oy + py, pw, ph, pal.k); rect(b, ox + px + 1, oy + py + 1, pw - 2, ph - 1, pal.f); rect(b, ox + px + 1, oy + py + 1, pw - 2, 1, pal.T);
+    for (let sx = ox + px + 4; sx < ox + px + pw - 2; sx += 6) rect(b, sx, oy + py + 3, 1, ph - 4, pal.F);
+    if (desk) { blit(b, ART.chair, ox + L.chair[0], oy + L.chair[1], pal); drawCharacter(b, desk.look, ox + L.char[0], oy + L.char[1], act, t); }
+    const [tx, ty, tw, th] = L.deskTop, [, fy, , fh] = L.deskFront;
+    rect(b, ox + tx - 1, oy + ty - 1, tw + 2, th + fh + 2, pal.k); rect(b, ox + tx, oy + ty, tw, th, pal.d);
+    rect(b, ox + tx, oy + fy, tw, 1, pal.q); rect(b, ox + tx, oy + fy + 1, tw, fh - 1, pal.D); rect(b, ox + tx + 1, oy + fy + fh + 1, tw - 2, 2, ART.carpetDark);
+    if (!desk) { blit(b, ART.plant, ox + 30, oy + 18, pal); drawPlate(b, ox, oy, "VACANT", true); return; }
+    blit(b, ART.monitor, ox + L.monitor[0], oy + L.monitor[1], pal);
+    blit(b, ART.mug, ox + L.mug[0], oy + L.mug[1], pal);
+    blit(b, ART.steam[Math.floor(t / 4) % 2], ox + L.mug[0], oy + L.mug[1] - 3, { w: "#E8EEF2" });
+    const ringing = act === "ringing", jig = ringing && t % 10 < 6 ? (t % 2 ? -1 : 1) : 0;
+    const phx = ox + L.phone[0] + jig, phy = oy + L.phone[1];
+    blit(b, desk.line ? ART.phone : ART.phoneDead, phx, phy, pal);
+    let lamp = pal.o;
+    if (desk.line) lamp = ringing ? (t % 4 < 2 ? ART.amber : pal.o) : act !== "idle" ? (t % 8 < 5 ? ART.mint : "#3E8C6A") : ART.mint;
+    put(b, phx + L.lamp[0], phy + L.lamp[1], lamp);
+    if (ringing && t % 10 < 6) for (const [rx, ry] of [[-2, 0], [-3, 1], [-2, 2], [11, 0], [12, 1], [11, 2]]) put(b, ox + L.phone[0] + rx, phy + ry, ART.amber);
+    drawPlate(b, ox, oy, plateText(desk.name), false);
+    const bx = ox + L.bubble[0], by = oy + L.bubble[1];
+    if (act === "thinking") { drawBubble(b, bx, by); for (let i = 0; i <= Math.floor(t / 3) % 3; i++) rect(b, bx + 3 + i * 4, by + 4, 2, 2, pal.k); }
+    else if (act === "speaking") { drawBubble(b, bx, by); const hs = [1, 3, 5, 3, 2, 4]; for (let i = 0; i < 5; i++) { const h = hs[(t + i * 2) % 6]; rect(b, bx + 3 + i * 2, by + 4 - Math.floor(h / 2), 1, Math.max(1, h), pal.p); } }
+    else if (act === "human") { drawBubble(b, bx, by); drawText(b, "YOU", bx + 2, by + 2, pal.p); }
+  }
+  function drawOffice(t) {
+    const b = { w: W, h: H, d: img.data };
+    b.d.fill(0);
+    drawWall(b, t, new Date()); drawCarpet(b);
+    for (let s = 0; s < L.rows * 2; s++) drawCell(b, (s % 2) * L.cellW, L.wallH + Math.floor(s / 2) * L.cellH, desks[s], activity[s], t);
+    ctx.putImageData(img, 0, 0);
+  }
+  function drawPortrait(cv, look, act, t) {
+    const c = cv.getContext("2d"), b = makeBuf(20, 20);
+    blit(b, ART.chair, 1, 10, ART.fixed); drawCharacter(b, look, 2, 1, act, t);
+    const id = c.createImageData(20, 20); id.data.set(b.d); c.clearRect(0, 0, 20, 20); c.putImageData(id, 0, 0);
+  }
+
+  // ---------- seats (tap targets) ----------
+  const scene = document.getElementById("scene");
+  const seatButtons = desks.map((desk, s) => {
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "seat";
+    const col = s % 2, row = Math.floor(s / 2);
+    Object.assign(btn.style, {
+      left: (col * L.cellW / W * 100) + "%", top: ((L.wallH + row * L.cellH) / H * 100) + "%",
+      width: (L.cellW / W * 100) + "%", height: (L.cellH / H * 100) + "%",
+    });
+    btn.setAttribute("aria-label", desk ? `${desk.name}'s desk` : "Empty desk");
+    btn.setAttribute("aria-pressed", "false");
+    btn.addEventListener("click", () => { lastSeatButton = btn; selected = s; renderNotes(); });
+    scene.appendChild(btn);
+    return btn;
+  });
+
+  // ---------- hint under the office, live call dock, desk sheet ----------
+  const notes = document.getElementById("notes");
+  const dock = document.getElementById("dock");
+  const sheet = document.getElementById("sheet"), sheetBody = document.getElementById("sheet-body");
+  const portraits = [];
+  let lastSeatButton = null;
+  document.getElementById("sheet-done").addEventListener("click", () => closeSheet());
+  sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSheet(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+  function closeSheet() { selected = null; renderNotes(); if (lastSeatButton) lastSeatButton.focus(); }
+
+  function renderNotes() {
+    seatButtons.forEach((b, i) => b.setAttribute("aria-pressed", String(selected === i)));
+    notes.textContent = ""; dock.textContent = ""; portraits.length = 0;
+    if (!live) notes.append(el("p", "hint", "Quiet for now. When someone calls one of your numbers, you'll see the phone ring. Tap a desk to see who sits there."));
+    if (live) {
+      const row = el("div", "callrow");
+      const cv = el("canvas"); cv.width = 20; cv.height = 20; portraits.push({ cv, seat: live.seat });
+      const mid = el("div"); mid.style.minWidth = "0";
+      mid.append(el("div", "who", live.headline), el("div", "last", live.last || "Connecting…"));
+      const btn = el("button", "pill", live.human ? "On the line" : "Jump in");
+      btn.type = "button"; btn.disabled = !!live.human;
+      btn.addEventListener("click", () => jumpIn());
+      row.append(cv, mid, btn); dock.append(row);
+    }
+    sheet.hidden = selected === null;
+    sheetBody.textContent = "";
+    if (selected !== null) {
+      const d = desks[selected];
+      const card = el("article", "deskcard");
+      if (!d) {
+        card.append(el("h3", null, "Empty desk"), el("p", "brief", "In the app, tapping here hires a new deskmate. You pick a name, a voice and a look, then write their job in plain words."));
+        card.firstChild.id = "sheet-title";
+      } else {
+        const head = el("header");
+        const cv = el("canvas"); cv.width = 20; cv.height = 20; portraits.push({ cv, seat: selected });
+        const names = el("div"); const h = el("h3", null, d.name); h.id = "sheet-title";
+        names.append(h, el("p", "role", d.role));
+        head.append(cv, names);
+        card.append(head, el("div", "number", d.line || "No number"), el("p", "meta", d.lineNote), el("p", "brief", d.brief));
+      }
+      sheetBody.append(card);
+      document.getElementById("sheet-done").focus();
+    }
+  }
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  // ---------- scripted calls ----------
+  const log = document.getElementById("log");
+  const playIn = document.getElementById("play-in"), playOut = document.getElementById("play-out"), jump = document.getElementById("jump");
+  let timers = [];
+  const later = (ms, fn) => timers.push(setTimeout(fn, reduceMotion ? Math.min(ms, 400) : ms));
+
+  function addLine(cls, who, text) {
+    const b = el("div", "bubble " + cls);
+    if (who) b.append(el("b", null, who));
+    b.append(document.createTextNode(text));
+    log.append(b); log.scrollTop = log.scrollHeight;
+    if (live && cls !== "sys") { live.last = cls === "agent" ? text : `“${text}”`; renderNotes(); }
+  }
+
+  function run(seat, kind, headline, steps) {
+    timers.forEach(clearTimeout); timers = [];
+    activity.fill("idle"); log.textContent = "";
+    live = { seat, kind, headline, last: "", human: false };
+    selected = null;
+    playIn.disabled = playOut.disabled = true; jump.disabled = false;
+    activity[seat] = "ringing"; renderNotes();
+    let at = 0;
+    for (const [delay, fn] of steps) { at += delay; later(at, fn); }
+  }
+  function say(seat, who, text, ms) {
+    return [[0, () => { activity[seat] = "thinking"; }], [700, () => { activity[seat] = "speaking"; addLine("agent", who, text); }], [ms, () => { activity[seat] = "listening"; }]];
+  }
+  function hear(seat, who, text, ms) {
+    return [[0, () => { activity[seat] = "listening"; addLine("them", who, text); }], [ms, () => {}]];
+  }
+  function finish(seat, sys) {
+    return [[600, () => { addLine("sys", null, sys); activity[seat] = "idle"; live = null; playIn.disabled = playOut.disabled = false; jump.disabled = true; renderNotes(); }]];
+  }
+
+  playIn.addEventListener("click", () => {
+    run(1, "inbound", "Otto's phone is ringing", [
+      [1800, () => { addLine("sys", null, "Otto picked up"); live.headline = "Otto is talking to +49 151 2234 8810"; }],
+      ...say(1, "Otto", "Kiez Bikes, this is Otto. How can I help?", 1600),
+      ...hear(1, "Caller", "Hi, I dropped off a blue city bike on Tuesday. Is it ready?", 1500),
+      ...say(1, "Otto", "I can't see repair status, but I'll get a message to the team. Can I have your name?", 2400),
+      ...hear(1, "Caller", "Jana Weber. Same number I'm calling from.", 1400),
+      ...say(1, "Otto", "Thanks Jana. Message for the team: blue city bike from Tuesday, please call back. Anything else?", 2600),
+      ...hear(1, "Caller", "No, that's it. Thanks!", 1100),
+      ...say(1, "Otto", "Have a good day. Bye!", 1300),
+      ...finish(1, "Call ended. Message saved and sent to your phone."),
+    ]);
+  });
+
+  playOut.addEventListener("click", () => {
+    run(0, "outbound", "Paula is dialing +49 69 9130 4471", [
+      [2200, () => { addLine("sys", null, "Trattoria Rosa answered"); live.headline = "Paula called +49 69 9130 4471"; }],
+      ...hear(0, "Restaurant", "Trattoria Rosa, buonasera!", 1200),
+      ...say(0, "Paula", "Hi, this is Paula calling for Simon. Could I book a table for four this Friday at 8pm?", 2600),
+      ...hear(0, "Restaurant", "Friday at eight… yes, we have a table inside. The terrace is closed in October.", 1900),
+      ...say(0, "Paula", "Inside is perfect. The name is Weber. Friday, eight o'clock, four people.", 2400),
+      ...hear(0, "Restaurant", "Perfect, see you Friday.", 1100),
+      ...say(0, "Paula", "Thank you, bye!", 1100),
+      ...finish(0, "Call ended. Booked: Friday 8pm, 4 people, name Weber."),
+    ]);
+  });
+
+  function jumpIn() {
+    if (!live || live.human) return;
+    const seat = live.seat, d = desks[seat];
+    timers.forEach(clearTimeout); timers = [];
+    activity[seat] = "speaking";
+    addLine("agent", d.name, "One moment, I'm putting you through now.");
+    later(1400, () => {
+      activity[seat] = "human"; live.human = true; live.headline = "You're on the line"; jump.disabled = true;
+      addLine("sys", null, `You jumped in. ${d.name} went quiet.`);
+      renderNotes();
+    });
+    later(3200, () => addLine("you", "You", "Hi, it's Simon. I'll take it from here."));
+    later(5600, () => { addLine("sys", null, `You left. ${d.name} picks the call back up.`); activity[seat] = "speaking"; live.human = false; live.headline = `${d.name} is back on the call`; renderNotes(); });
+    later(6400, () => addLine("agent", d.name, "I'm back. Is there anything else I can help with?"));
+    later(8400, () => { addLine("sys", null, "Call ended."); activity[seat] = "idle"; live = null; playIn.disabled = playOut.disabled = false; renderNotes(); });
+    renderNotes();
+  }
+  jump.addEventListener("click", jumpIn);
+
+  // ---------- loop ----------
+  let frame = 0;
+  function tick() {
+    drawOffice(reduceMotion ? 0 : frame);
+    portraits.forEach(({ cv, seat }) => drawPortrait(cv, desks[seat].look, activity[seat], reduceMotion ? 0 : frame));
+    frame++;
+  }
+  renderNotes(); tick();
+  setInterval(tick, 125);
+})();
+</script>

@@ -12,3 +12,5 @@ python gen.py ../../Targets/OfficeKit/Sources/Pixel/PixelArt.swift /tmp/pixelart
 ```
 
 `OfficeRenderer.swift` mirrors `render.py` line for line; change both together.
+
+`preview.html` is a browser preview of the office with scripted calls, built from `preview.template.html` by swapping `/*__ART__*/` for the generated JS data (the second output of `gen.py`).
