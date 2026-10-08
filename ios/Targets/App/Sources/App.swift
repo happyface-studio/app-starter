@@ -27,6 +27,9 @@ struct MainApp: App {
 	/// Object to access DBKit and AuthKit (SupabaseKit).
 	@StateObject var db: DB
 
+	/// Desks, phone lines and calls for the pixel office (SupabaseKit + OfficeKit).
+	@StateObject var office: OfficeStore
+
 	/// Object to access InAppPurchaseKit
 	@StateObject var iap = InAppPurchases()
 
@@ -36,33 +39,34 @@ struct MainApp: App {
 
 	init() {
 
-		_db = StateObject(
-			wrappedValue: DB(onAuthStateChange: { event, session in
-				if let user = session?.user {
+		let db = DB(onAuthStateChange: { event, session in
+			if let user = session?.user {
 
-					// Logged in => Privacy Consent Given during signup (NotifKit)
-					PushNotifications.oneSignalConsentGiven()
+				// Logged in => Privacy Consent Given during signup (NotifKit)
+				PushNotifications.oneSignalConsentGiven()
 
-					// Identify OneSignal with Supabase user (NotifKit & AuthKit)
-					PushNotifications.associateUserWithID(user.id.uuidString)
+				// Identify OneSignal with Supabase user (NotifKit & AuthKit)
+				PushNotifications.associateUserWithID(user.id.uuidString)
 
-					// Get PostHog Associated User Properties (AnalyticsKit & AuthKit)
-					var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
+				// Get PostHog Associated User Properties (AnalyticsKit & AuthKit)
+				var userProperties = DB.convertAuthUserToAnalyticsUserProperties(user)
 
-					// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
-					InAppPurchases.associateUserWithID(
-						user.id.uuidString, currentUserProperties: userProperties
-					) {
-						userProperties = $0
-					}
-
-					Analytics.associateUserWithID(user.id.uuidString, userProperties: userProperties)
-				} else {
-					Analytics.removeUserIDAssociation()
-					InAppPurchases.removeUserIDAssociation()
-					PushNotifications.removeUserIDAssociation()
+				// Identify RevenueCat SDK with Supabase user (InAppPurchaseKit & AuthKit)
+				InAppPurchases.associateUserWithID(
+					user.id.uuidString, currentUserProperties: userProperties
+				) {
+					userProperties = $0
 				}
-			}))
+
+				Analytics.associateUserWithID(user.id.uuidString, userProperties: userProperties)
+			} else {
+				Analytics.removeUserIDAssociation()
+				InAppPurchases.removeUserIDAssociation()
+				PushNotifications.removeUserIDAssociation()
+			}
+		})
+		_db = StateObject(wrappedValue: db)
+		_office = StateObject(wrappedValue: OfficeStore(db: db))
 	}
 
 	var body: some Scene {
@@ -95,6 +99,7 @@ struct MainApp: App {
 				}
 
 				.environmentObject(db)
+				.environmentObject(office)
 				.environmentObject(iap)
 		}
 	}

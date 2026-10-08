@@ -46,7 +46,7 @@ func tuistProject() -> Project {
 		"NSLocationAlwaysAndWhenInUseUsageDescription": "We need Location Access for the App to work.",
 		"NSLocationWhenInUseUsageDescription": "We need Location Access for the App to work.",
 		"NSContactsUsageDescription": "We need Contacts Access for the App to work.",
-		"NSMicrophoneUsageDescription": "We need Microhone Access for the App to work.",
+		"NSMicrophoneUsageDescription": "Deskmates uses the microphone when you talk to a deskmate or jump into a call.",
 		"NSCalendarsFullAccessUsageDescription": "We need Calendar Access for the App to work.",
 		"NSRemindersFullAccessUsageDescription": "We need Reminders Access for the App to work.",
 		"NSPhotoLibraryUsageDescription": "We need Photo Library Access for the App to work.",
@@ -68,6 +68,7 @@ func tuistProject() -> Project {
 	addNotifKit()
 	let iapKit = addInAppPurchaseKit()
 	addSupabaseKit()
+	addOfficeKit()
 
 	addApp()
 
@@ -279,6 +280,44 @@ func tuistProject() -> Project {
 		appEntitlements["aps-environment"] = .string("development")
 		appEntitlements["com.apple.security.application-groups"] = .array(["group.\(bundleID).onesignal"])
 		projectTargets.append(notifExtensionTarget)
+	}
+
+	// The pixel office, desks, phone lines and LiveKit calls
+	func addOfficeKit() {
+		let targetName = "OfficeKit"
+		let officeTarget: Target = .target(
+			name: targetName,
+			destinations: destinations,
+			product: .framework,
+			bundleId: "\(bundleID).\(targetName)",
+			deploymentTargets: .iOS(osVersion),
+			infoPlist: .extendingDefault(with: defaultModuleInfoPlist),
+			sources: ["Targets/\(targetName)/Sources/**"],
+			resources: [baseAppResources],
+			dependencies: [
+				sharedKit,
+				analyticsKit,
+				TargetDependency.target(name: "SupabaseKit"),
+				TargetDependency.package(product: "LiveKit", type: .runtime),
+			],
+			settings: .settings(base: [
+				"ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES"
+			])
+		)
+		appDependencies.append(TargetDependency.target(name: targetName))
+		projectPackages.append(
+			.remote(
+				url: "https://github.com/livekit/client-sdk-swift.git",
+				requirement: .upToNextMinor(from: "2.17.0")
+			)
+		)
+		// Keep call audio alive when the app is backgrounded mid-call.
+		if case let .array(modes)? = appInfoPlist["UIBackgroundModes"] {
+			appInfoPlist["UIBackgroundModes"] = .array(modes + ["audio"])
+		} else {
+			appInfoPlist["UIBackgroundModes"] = .array(["audio"])
+		}
+		projectTargets.append(officeTarget)
 	}
 
 	// Supabase Auth + DB

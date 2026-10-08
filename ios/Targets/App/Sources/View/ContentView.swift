@@ -6,6 +6,7 @@
 
 import InAppPurchaseKit
 import NotifKit
+import OfficeKit
 import SharedKit
 import SupabaseKit
 import SwiftUI
@@ -19,9 +20,12 @@ struct ContentView: View {
 	var body: some View {
 		TabView {
 
-			// Example view on how to access the Database.
-			Tab("DB Exmpls.", systemImage: "externaldrive.badge.icloud") {
-				DatabaseExampleView()
+			Tab("Office", systemImage: "building.2") {
+				OfficeView()
+			}
+
+			Tab("Calls", systemImage: "phone") {
+				CallsView()
 			}
 
 			// Pre-made Settings View for easy native-looking settings screen.
@@ -43,7 +47,7 @@ struct ContentView: View {
 
 		.tabViewStyle(.sidebarAdaptable)
 		.tabViewSidebarHeader {
-			Text("SwiftyLaunch App")
+			Text("Deskmates")
 				.font(.title)
 				.bold()
 				.frame(maxWidth: .infinity, alignment: .leading)
