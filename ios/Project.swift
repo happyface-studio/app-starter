@@ -7,13 +7,13 @@ let project = tuistProject()
 func tuistProject() -> Project {
 
 	// Dont use spaces here
-	let appName = "Flaunt"
+	let appName = "Deskmates"
 
 	// You can use spaces here
-	let appDisplayName = "Flaunt"
+	let appDisplayName = "Deskmates"
 
 	// Your app's bundle id. Bundle ID of all other modules will use this as a prefix
-	let bundleID = "studio.happyface.flaunt"
+	let bundleID = "studio.happyface.deskmates"
 
 	// Minimum deployment version
 	let osVersion = "18.0"

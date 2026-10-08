@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "{{PROJECT_ID}}"
+project_id = "deskmates"
 
 [api]
 enabled = true
@@ -316,7 +316,7 @@ max_frequency = "5s"
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.apple]
 enabled = true
-client_id = "{{BUNDLE_ID}}"
+client_id = "studio.happyface.deskmates"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 # Overrides the default auth callback URL derived from auth.external_url.

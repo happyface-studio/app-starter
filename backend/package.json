@@ -1,8 +1,8 @@
 {
-  "name": "{{PROJECT_ID}}-backend",
+  "name": "deskmates-backend",
   "private": true,
   "version": "0.0.0",
-  "description": "Backend tooling for {{APP_NAME}} — Supabase migrations and edge functions.",
+  "description": "Backend tooling for Deskmates — Supabase migrations and edge functions.",
   "scripts": {
     "db:local:dev": "supabase start",
     "db:local:stop": "supabase stop",

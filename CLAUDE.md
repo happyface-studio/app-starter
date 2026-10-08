@@ -1,11 +1,11 @@
-# {{APP_NAME}}
+# Deskmates
 
 iOS + Supabase app, scaffolded from the **flaunt-starter** template.
 
 ## Monorepo Structure
 
 ```
-{{PROJECT_ID}}/
+deskmates/
 ├── ios/                    # SwiftUI app (Tuist, iOS 18+)
 ├── backend/                # Supabase (Postgres + Edge Functions)
 ├── scripts/                # Template + maintenance scripts
@@ -52,7 +52,7 @@ Before any `db:push` or deployment:
 - **Database migrations**: Plain SQL in `backend/supabase/migrations/`. See `backend/CLAUDE.md`.
 - **iOS modules**: Tuist multi-target architecture. Each Kit is a separate framework — App, SharedKit, SupabaseKit, AnalyticsKit, InAppPurchaseKit, NotifKit.
 - **Secrets**: Never commit. iOS reads from `ios/Secrets.xcconfig` (gitignored) locally and from Xcode Cloud env vars in CI. Backend reads from Supabase secrets (`supabase secrets set ...`).
-- **Bundle ID**: `{{BUNDLE_ID}}`
+- **Bundle ID**: `studio.happyface.deskmates`
 
 ## CI/CD — Xcode Cloud
 

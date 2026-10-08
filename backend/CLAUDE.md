@@ -1,4 +1,4 @@
-# {{APP_NAME}} Backend
+# Deskmates Backend
 
 Supabase (Auth + Postgres + Edge Functions + Storage). One runtime: Deno (Edge Functions).
 

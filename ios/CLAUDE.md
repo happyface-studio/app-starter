@@ -1,4 +1,4 @@
-# {{APP_NAME}} iOS App
+# Deskmates iOS App
 
 SwiftUI app built with Tuist multi-target architecture. iOS 18+ minimum.
 
@@ -15,7 +15,7 @@ tuist generate         # Generate Xcode project from Project.swift
 tuist clean            # Clean generated artifacts
 ```
 
-Open `{{APP_NAME}}.xcworkspace` in Xcode after generating.
+Open `Deskmates.xcworkspace` in Xcode after generating.
 
 ## Module Architecture
 
@@ -79,7 +79,7 @@ Do **not** write comments that restate what the code does, reference the current
 
 ## Key Patterns
 
-- **Bundle ID** — `{{BUNDLE_ID}}` (set in `Project.swift`)
+- **Bundle ID** — `studio.happyface.deskmates` (set in `Project.swift`)
 - **SupabaseKit models** — group queries by domain (`DB+<Domain>.swift`)
 - **Onboarding / paywall sheets** — driven by view modifiers in SharedKit
 
