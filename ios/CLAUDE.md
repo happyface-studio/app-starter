@@ -25,7 +25,8 @@ App (main target)
 ├── SupabaseKit        # Auth (Apple + Email), DB queries, edge function calls
 ├── AnalyticsKit       # PostHog event tracking
 ├── InAppPurchaseKit   # RevenueCat subscriptions, paywall
-└── NotifKit           # OneSignal push notifications
+├── NotifKit           # OneSignal push notifications
+└── OfficeKit          # Pixel office, desks, phone lines, LiveKit call screens
 ```
 
 ### Module Responsibilities
@@ -37,6 +38,7 @@ App (main target)
 | **AnalyticsKit** | PostHog setup, event capture | posthog-ios |
 | **InAppPurchaseKit** | Paywall UI, subscription management | RevenueCat |
 | **NotifKit** | Push permission flow, notification settings | OneSignal |
+| **OfficeKit** | Pixel renderer, office/desk/call UI, LiveKit calls | LiveKit (client-sdk-swift 2.17) |
 
 ## Directory Layout (per module)
 

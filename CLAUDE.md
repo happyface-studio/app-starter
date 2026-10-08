@@ -1,6 +1,6 @@
 # Deskmates
 
-iOS + Supabase app, scaffolded from the **flaunt-starter** template.
+Pixel call-center app: AI deskmates with real phone numbers. iOS + Supabase + LiveKit, scaffolded from the HappyFace app starter. Product overview and setup: `README.md`.
 
 ## Monorepo Structure
 
@@ -8,6 +8,7 @@ iOS + Supabase app, scaffolded from the **flaunt-starter** template.
 deskmates/
 ├── ios/                    # SwiftUI app (Tuist, iOS 18+)
 ├── backend/                # Supabase (Postgres + Edge Functions)
+├── agent/                  # Python LiveKit voice agent (one worker serves every desk)
 ├── scripts/                # Template + maintenance scripts
 └── CLAUDE.md               # You are here
 ```
@@ -21,13 +22,18 @@ Each subdirectory has its own `CLAUDE.md`:
 - **mise** — Version manager (installs Tuist for iOS). `curl https://mise.run | sh`
 - **Node.js 20+** — Backend tooling
 - **Supabase CLI** — `brew install supabase/tap/supabase` (or `npm i -g supabase`)
-- **Xcode 16+** — iOS 18 toolchain
+- **Xcode 16.3+** — iOS 18 toolchain (LiveKit 2.17 needs Swift tools 6.1)
+- **uv** — Python agent (`agent/`)
 
 ## Architecture
 
 ```
-iOS App (SwiftUI) ──▶ Supabase (Auth + Postgres + Edge Functions + Storage)
+iOS App (SwiftUI) ──▶ Supabase (Auth + Postgres + Edge Functions + Realtime)
+        │                     ▲
+        └──▶ LiveKit rooms ◀──┴── agent/ (writes call status + transcripts)
 ```
+
+- **LiveKit** — rooms, SIP (phone numbers, inbound dispatch rule `deskmates-inbound`, outbound trunk), Agents + Inference
 
 - **Supabase** — Auth (incl. Sign in with Apple), Postgres DB, Edge Functions, Storage
 - **RevenueCat** — Subscriptions / paywall
@@ -50,7 +56,9 @@ Before any `db:push` or deployment:
 ## Key Conventions
 
 - **Database migrations**: Plain SQL in `backend/supabase/migrations/`. See `backend/CLAUDE.md`.
-- **iOS modules**: Tuist multi-target architecture. Each Kit is a separate framework — App, SharedKit, SupabaseKit, AnalyticsKit, InAppPurchaseKit, NotifKit.
+- **iOS modules**: Tuist multi-target architecture. Each Kit is a separate framework — App, SharedKit, SupabaseKit, AnalyticsKit, InAppPurchaseKit, NotifKit, OfficeKit (the pixel office + LiveKit calling).
+- **Pixel art**: edit `ios/Tools/pixelart/design.py`, regenerate `PixelArt.swift` with `gen.py`; `OfficeRenderer.swift` mirrors `render.py`.
+- **Agent ↔ app contract**: job metadata `{direction, call_id, desk_id, to, from, trunk_id, brief}`; RPC `deskmates.handoff` (owner takes over); owner participants use identity `owner-<user id>`.
 - **Secrets**: Never commit. iOS reads from `ios/Secrets.xcconfig` (gitignored) locally and from Xcode Cloud env vars in CI. Backend reads from Supabase secrets (`supabase secrets set ...`).
 - **Bundle ID**: `studio.happyface.deskmates`
 

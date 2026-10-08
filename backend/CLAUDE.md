@@ -10,8 +10,14 @@ backend/
 │   ├── config.toml            # Local CLI config + Apple OAuth + storage
 │   ├── seed.sql               # Seed data for local development
 │   ├── migrations/            # SQL migration files (source of truth)
-│   │   └── 00000000000000_posts.sql
-│   └── functions/             # Edge Functions (Deno) — add via `supabase functions new`
+│   │   ├── 00000000000000_posts.sql
+│   │   └── 20261008120000_deskmates.sql   # desks, phone_lines, calls, plug_line()
+│   └── functions/             # Edge Functions (Deno)
+│       ├── _shared/           # http helpers, Supabase admin client, LiveKit clients
+│       ├── session-token/     # LiveKit token: talk to a desk / listen in on a call
+│       ├── phone-numbers/     # search / rent (LiveKit) / claim (SIP trunk) / release
+│       ├── place-call/        # dispatch the agent to dial out
+│       └── end-call/          # delete the room, mark the call ended
 ├── package.json               # DB/edge npm scripts
 ├── .env.template              # Local script env vars
 └── .gitignore
@@ -42,6 +48,9 @@ Before any migration or deployment, check your git branch and ensure Supabase is
 
 - `auth.users` — Managed by Supabase Auth.
 - `public.posts` — Starter example matching `SupabaseBackend.swift`'s `DatabaseExampleView` (RLS: owner-only).
+- `public.desks` — Owner read/write.
+- `public.phone_lines` — Owner read; only `desk_id` is writable by users (via `plug_line()`); rows created by edge functions.
+- `public.calls` — Owner read/delete; written by the agent and edge functions (service role). In the Realtime publication.
 
 Extend with your domain tables. Always:
 
@@ -51,7 +60,7 @@ Extend with your domain tables. Always:
 
 ## Edge Functions
 
-The template ships with no edge functions — add yours with `supabase functions new <name>`. They live under `supabase/functions/<name>/index.ts` and are deployed with `npm run functions:deploy`.
+LiveKit secrets: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (+ optional trunk/limit vars, see root README). Add new functions with `supabase functions new <name>`. They live under `supabase/functions/<name>/index.ts` and are deployed with `npm run functions:deploy`.
 
 Edge functions run in **Deno**, not Node:
 
