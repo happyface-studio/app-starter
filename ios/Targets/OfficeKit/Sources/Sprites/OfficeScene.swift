@@ -5,14 +5,21 @@ import SupabaseKit
 /// and the web preview: everything is depth-sorted by its bottom edge, and a seated deskmate's feet
 /// sit just behind the desk so the desk top hides their legs.
 ///
-/// Idle deskmates get up now and then and walk to the water cooler, the vending machine, the
-/// window or the cat along paths baked by the pack step. When their phone rings they hurry back.
+/// Idle deskmates get up now and then for a break: the cooler, the copier, the kitchen (fridge,
+/// coffee, the table, the sofa), along paths baked by the pack step. When their phone rings they
+/// hurry back. Now and then a visitor comes in, checks in at reception, waits on the couch with a
+/// magazine and leaves. Each place takes one person at a time.
 final class OfficeScene: SKScene {
 	private let art: OfficeArt
 	private let reduceMotion: Bool
 	private var seats: [DeskSnapshot?] = []
 	private var stations: [StationNodes] = []
 	private var agents: [Agent] = []
+	private var guests: [Guest] = []
+	private var guestNodes: [SKSpriteNode] = []
+	private var nextGuest: TimeInterval = 6
+	private var taken: Set<String> = []
+	private let staffPlaces: [String]
 	private var textures: [String: SKTexture] = [:]
 	private var characterTextures: [Look: SKTexture] = [:]
 	private var characterFrames: [CharacterFrameKey: SKTexture] = [:]
@@ -26,6 +33,7 @@ final class OfficeScene: SKScene {
 	init(art: OfficeArt, reduceMotion: Bool) {
 		self.art = art
 		self.reduceMotion = reduceMotion
+		staffPlaces = art.manifest.pois.filter { $0.value.who == "staff" }.map(\.key).sorted()
 		super.init(size: CGSize(width: art.manifest.scene.w, height: art.manifest.scene.h))
 		scaleMode = .fill
 		anchorPoint = .zero
@@ -121,9 +129,16 @@ final class OfficeScene: SKScene {
 			stations.append(nodes)
 			agents.append(Agent(seat: st.seat, x: CGFloat(st.feet.x), y: CGFloat(st.feet.y), wait: 4 + Double(st.seat) * 3 + .random(in: 0..<8)))
 		}
+		guestNodes = (0..<Self.maxGuests).map { _ in
+			let n = node(nil, z: 0)
+			n.isHidden = true
+			return n
+		}
 		plateKeys = Array(repeating: "", count: M.stations.count)
 		apply(seats: Array(repeating: nil, count: M.stations.count))
 	}
+
+	private static let maxGuests = 2
 
 	private static func ringMarks() -> CGImage? {
 		var buf = PixelBuffer(width: 22, height: 6)
@@ -158,6 +173,7 @@ final class OfficeScene: SKScene {
 				place(nodes.plate, CGFloat(st.plate.cx - Int(plate.size().width) / 2), CGFloat(st.plate.y))
 			}
 			if (old == nil) != (desk == nil) {
+				if let place = agents[seat].walker.place { taken.remove(place) }
 				agents[seat].sit(at: st)
 			}
 		}
@@ -174,9 +190,77 @@ final class OfficeScene: SKScene {
 			let desk = seat < seats.count ? seats[seat] : nil
 			agents[seat].update(
 				dt: dt, now: clock, activity: desk?.activity ?? .idle, occupied: desk != nil, wanders: !reduceMotion,
-				manifest: M)
+				manifest: M, places: staffPlaces, taken: &taken)
 			draw(seat: seat, desk: desk)
 		}
+		if !reduceMotion { updateGuests(dt: dt) }
+		drawGuests()
+	}
+
+	// MARK: - Visitors
+
+	private func updateGuests(dt: TimeInterval) {
+		guard let plan = M.guests else { return }
+		nextGuest -= dt
+		if nextGuest <= 0 {
+			spawnGuest(plan)
+			nextGuest = .random(in: 22..<47)
+		}
+		for i in guests.indices {
+			guests[i].update(dt: dt, plan: plan, manifest: M)
+		}
+		for guest in guests where guest.mode == .gone {
+			if let place = guest.walker.place { taken.remove(place) }
+		}
+		guests.removeAll { $0.mode == .gone }
+	}
+
+	private func spawnGuest(_ plan: OfficeManifest.Guests) {
+		let receptionBusy = guests.contains { $0.mode == .arriving || $0.mode == .atDesk }
+		guard guests.count < Self.maxGuests, !receptionBusy,
+			let seat = plan.seats.filter({ !taken.contains($0) }).randomElement()
+		else { return }
+		taken.insert(seat)
+		guests.append(Guest(look: .random(), seat: seat, arrive: plan.arrive))
+	}
+
+	private func drawGuests() {
+		for (slot, node) in guestNodes.enumerated() {
+			guard slot < guests.count, let strip = characterTexture(guests[slot].look) else {
+				node.isHidden = true
+				continue
+			}
+			let guest = guests[slot]
+			// At the counter they stand; their seat's pose (reading) only applies once they're in it.
+			let index =
+				guest.mode == .atDesk
+				? art.characterFrameIndex("idle", face: guest.walker.face, Int(clock * 5))
+				: awayFrame(guest.walker, arrived: guest.mode == .waiting)
+			node.isHidden = false
+			node.texture = characterFrame(strip, look: guest.look, index: index)
+			node.size = CGSize(width: art.characterSize.w, height: art.characterSize.h)
+			node.zPosition = depth(of: guest.walker) + 0.1 + CGFloat(slot) * 0.01
+			place(node, guest.walker.x.rounded() - 8, guest.walker.y.rounded() - 31)
+		}
+	}
+
+	// MARK: - People away from their desk
+
+	/// Draw order: someone in a seat (or stepping into it) uses the seat's z, so they show on top of it.
+	private func depth(of walker: Walker) -> CGFloat {
+		if let name = walker.place, let poi = M.pois[name], let approach = poi.approach, let z = poi.z,
+			approach.count == 2, abs(walker.x - CGFloat(poi.x)) < 0.5, walker.y < CGFloat(approach[1]) - 0.01
+		{
+			return max(CGFloat(z), walker.y)
+		}
+		return walker.y
+	}
+
+	private func awayFrame(_ walker: Walker, arrived: Bool) -> Int {
+		guard arrived else { return art.characterFrameIndex("walk", face: walker.face, Int(walker.walkTime * 10)) }
+		let pose = walker.place.flatMap { M.pois[$0]?.pose } ?? "idle"
+		if pose == "read" { return art.characterFrameIndex("read", Int(clock * 3)) }
+		return art.characterFrameIndex(pose, face: walker.face, Int(clock * 5))
 	}
 
 	private func draw(seat: Int, desk: DeskSnapshot?) {
@@ -202,8 +286,8 @@ final class OfficeScene: SKScene {
 			return
 		}
 
-		let x = agent.x.rounded() - 8
-		let y = agent.y.rounded() - 31
+		let x = agent.walker.x.rounded() - 8
+		let y = agent.walker.y.rounded() - 31
 		let index: Int
 		var headset: String?
 		let idleFrame = Int(clock * 5) % 6
@@ -217,15 +301,15 @@ final class OfficeScene: SKScene {
 					if desk.hasLine { headset = activity.isTalking ? "headset_live" : "headset" }
 				}
 			case .atPlace:
-				index = art.characterFrameIndex("idle", face: agent.face, idleFrame)
+				index = awayFrame(agent.walker, arrived: true)
 			case .walking, .returning:
-				index = art.characterFrameIndex("walk", face: agent.face, Int(agent.walkTime * 10))
+				index = awayFrame(agent.walker, arrived: false)
 		}
 		nodes.character.isHidden = false
 		nodes.character.texture = characterFrame(strip, look: desk.look, index: index)
 		nodes.character.size = CGSize(width: art.characterSize.w, height: art.characterSize.h)
 		// Seat offset keeps two people on the same row in a fixed order (sibling order is ignored).
-		let z = agent.y + CGFloat(seat) * 0.01
+		let z = (agent.mode == .seated ? agent.walker.y : depth(of: agent.walker)) + CGFloat(seat) * 0.01
 		nodes.character.zPosition = z
 		place(nodes.character, x, y)
 
@@ -296,80 +380,24 @@ private struct StationNodes {
 	let emote: SKSpriteNode
 }
 
-/// One deskmate's position and errand. Coordinates are the feet, in art pixels.
-private struct Agent {
-	enum Mode {
-		case seated, walking, atPlace, returning
-	}
-
-	let seat: Int
+/// Someone moving along a baked path. Coordinates are the feet, in art pixels.
+private struct Walker {
 	var x: CGFloat
 	var y: CGFloat
 	var face: OfficeArt.Face = .down
-	var mode: Mode = .seated
 	var path: [CGPoint] = []
 	var segment = 0
+	/// The place (a key in the manifest's `pois`) they're headed to, at, or coming back from.
 	var place: String?
-	var wait: TimeInterval
 	var walkTime: TimeInterval = 0
-	var phoneSince: TimeInterval?
 
-	init(seat: Int, x: CGFloat, y: CGFloat, wait: TimeInterval) {
-		self.seat = seat
-		self.x = x
-		self.y = y
-		self.wait = wait
+	mutating func start(_ corners: [CGPoint]) {
+		path = corners
+		segment = 1
 	}
 
-	mutating func sit(at station: OfficeManifest.Station) {
-		x = CGFloat(station.feet.x)
-		y = CGFloat(station.feet.y)
-		mode = .seated
-		face = .down
-		path = []
-		wait = .random(in: 6..<16)
-	}
-
-	mutating func update(
-		dt: TimeInterval, now: TimeInterval, activity: DeskActivity, occupied: Bool, wanders: Bool,
-		manifest: OfficeManifest
-	) {
-		guard occupied else { return }
-		let busy = activity != .idle
-		if activity == .dialing, mode == .seated {
-			if phoneSince == nil { phoneSince = now }
-		} else {
-			phoneSince = nil
-		}
-
-		switch mode {
-			case .seated:
-				guard !busy, wanders else { return }
-				wait -= dt
-				if wait <= 0 {
-					let station = manifest.stations[seat]
-					guard let name = manifest.pois.keys.randomElement(), let corners = station.paths[name] else {
-						wait = 5
-						return
-					}
-					place = name
-					start(corners.map { CGPoint(x: $0[0], y: $0[1]) }, .walking)
-				}
-				return
-			case .atPlace:
-				wait -= dt
-				if wait <= 0 || busy { start(path.reversed(), .returning) }
-				return
-			case .walking:
-				if busy {
-					// Turn around mid-walk: back to the last corner, then retrace to the seat.
-					start([CGPoint(x: x, y: y)] + path[..<segment].reversed(), .returning)
-				}
-			case .returning:
-				break
-		}
-
-		let speed: CGFloat = mode == .returning && busy ? 64 : 30
+	/// Moves along the path. Returns true once at the end.
+	mutating func walk(dt: TimeInterval, speed: CGFloat) -> Bool {
 		var step = speed * CGFloat(dt)
 		while step > 0, segment < path.count {
 			let target = path[segment]
@@ -391,22 +419,154 @@ private struct Agent {
 			}
 		}
 		walkTime += dt * Double(speed / 30)
-		if segment >= path.count {
-			if mode == .walking {
-				mode = .atPlace
-				face = place.flatMap { manifest.pois[$0] }.flatMap { OfficeArt.Face(rawValue: $0.face) } ?? .up
-				wait = .random(in: 2.5..<5.5)
-			} else {
-				mode = .seated
-				face = .down
-				wait = .random(in: 10..<24)
-			}
-		}
+		return segment >= path.count
+	}
+}
+
+private func points(_ corners: [[Int]]) -> [CGPoint] {
+	corners.compactMap { $0.count == 2 ? CGPoint(x: $0[0], y: $0[1]) : nil }
+}
+
+/// One deskmate: at their desk, or on a break.
+private struct Agent {
+	enum Mode {
+		case seated, walking, atPlace, returning
 	}
 
-	private mutating func start(_ corners: [CGPoint], _ newMode: Mode) {
-		path = corners
-		segment = 1
-		mode = newMode
+	let seat: Int
+	var walker: Walker
+	var mode: Mode = .seated
+	var wait: TimeInterval
+	var phoneSince: TimeInterval?
+
+	init(seat: Int, x: CGFloat, y: CGFloat, wait: TimeInterval) {
+		self.seat = seat
+		walker = Walker(x: x, y: y)
+		self.wait = wait
+	}
+
+	mutating func sit(at station: OfficeManifest.Station) {
+		walker = Walker(x: CGFloat(station.feet.x), y: CGFloat(station.feet.y))
+		mode = .seated
+		wait = .random(in: 6..<16)
+	}
+
+	mutating func update(
+		dt: TimeInterval, now: TimeInterval, activity: DeskActivity, occupied: Bool, wanders: Bool,
+		manifest: OfficeManifest, places: [String], taken: inout Set<String>
+	) {
+		guard occupied else { return }
+		let busy = activity != .idle
+		if activity == .dialing, mode == .seated {
+			if phoneSince == nil { phoneSince = now }
+		} else {
+			phoneSince = nil
+		}
+
+		switch mode {
+			case .seated:
+				guard !busy, wanders else { return }
+				wait -= dt
+				guard wait <= 0 else { return }
+				let station = manifest.stations[seat]
+				guard
+					let name = places.filter({ !taken.contains($0) && station.paths[$0] != nil }).randomElement(),
+					let corners = station.paths[name]
+				else {
+					wait = 5
+					return
+				}
+				taken.insert(name)
+				walker.place = name
+				walker.start(points(corners))
+				mode = .walking
+				return
+			case .atPlace:
+				wait -= dt
+				if wait <= 0 || busy {
+					walker.start(walker.path.reversed())
+					mode = .returning
+				}
+				return
+			case .walking:
+				if busy {
+					// Turn around mid-walk: back to the last corner, then retrace to the desk.
+					walker.start([CGPoint(x: walker.x, y: walker.y)] + walker.path.prefix(walker.segment).reversed())
+					mode = .returning
+				}
+			case .returning:
+				break
+		}
+
+		guard walker.walk(dt: dt, speed: mode == .returning && busy ? 64 : 30) else { return }
+		if mode == .walking {
+			mode = .atPlace
+			let poi = walker.place.flatMap { manifest.pois[$0] }
+			walker.face = poi.flatMap { OfficeArt.Face(rawValue: $0.face) } ?? .up
+			wait = (poi?.pose == nil ? 3 : 8) + .random(in: 0..<4)
+		} else {
+			if let place = walker.place { taken.remove(place) }
+			walker.place = nil
+			mode = .seated
+			walker.face = .down
+			wait = .random(in: 10..<24)
+		}
+	}
+}
+
+/// A visitor: in through the door, check in at reception, wait in a seat, out again.
+private struct Guest {
+	enum Mode {
+		case arriving, atDesk, toSeat, waiting, leaving, gone
+	}
+
+	let look: Look
+	var walker: Walker
+	var mode: Mode = .arriving
+	var wait: TimeInterval = 0
+
+	init(look: Look, seat: String, arrive: [[Int]]) {
+		self.look = look
+		let path = points(arrive)
+		walker = Walker(x: path.first?.x ?? 0, y: path.first?.y ?? 0, face: .up)
+		walker.place = seat
+		walker.start(path)
+	}
+
+	mutating func update(dt: TimeInterval, plan: OfficeManifest.Guests, manifest: OfficeManifest) {
+		guard let seat = walker.place else {
+			mode = .gone
+			return
+		}
+		switch mode {
+			case .atDesk, .waiting:
+				wait -= dt
+				guard wait <= 0 else { return }
+				if mode == .atDesk {
+					walker.start(points(plan.toSeat[seat] ?? []))
+					mode = .toSeat
+				} else {
+					walker.start(points(plan.leave[seat] ?? []))
+					mode = .leaving
+				}
+				return
+			case .gone:
+				return
+			case .arriving, .toSeat, .leaving:
+				break
+		}
+		guard walker.walk(dt: dt, speed: 26) else { return }
+		switch mode {
+			case .arriving:
+				mode = .atDesk
+				walker.face = OfficeArt.Face(rawValue: plan.desk.face) ?? .up
+				wait = 2.5
+			case .toSeat:
+				mode = .waiting
+				walker.face = manifest.pois[seat].flatMap { OfficeArt.Face(rawValue: $0.face) } ?? .down
+				wait = .random(in: 10..<18)
+			default:
+				mode = .gone
+		}
 	}
 }

@@ -32,12 +32,13 @@
     if (look.accessory > 0 && C.accessories.length) names.push(pick(C.accessories, look.accessory - 1).file);
     return names;
   }
+  const stripFrames = Math.max(...Object.values(C.anims).map((a) => a.start + (a.perDir ? a.perDir * a.dirs.length : a.count)));
   const stripCache = new Map();
   function strip(look) {
     const key = JSON.stringify(look);
     if (!stripCache.has(key)) {
       const cv = document.createElement("canvas");
-      cv.width = 60 * C.frameW; cv.height = C.frameH;
+      cv.width = stripFrames * C.frameW; cv.height = C.frameH;
       const c = cv.getContext("2d");
       for (const name of layersFor(look)) if (images[name]) c.drawImage(images[name], 0, 0);
       stripCache.set(key, cv);
@@ -46,11 +47,12 @@
   }
   function frameIndex(anim, face, i) {
     const a = C.anims[anim];
-    return a.perDir ? a.start + a.dirs.indexOf(face) * a.perDir + (i % a.perDir) : a.start + i;
+    return a.perDir ? a.start + Math.max(0, a.dirs.indexOf(face)) * a.perDir + (i % a.perDir) : a.start + (i % a.count);
   }
 
   // ---------- drawing ----------
   const canvas = document.getElementById("office");
+  canvas.width = M.scene.w; canvas.height = M.scene.h;
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   const atlas = images[M.atlas];
@@ -84,56 +86,116 @@
     return cv;
   }
 
-  // ---------- deskmates walking around ----------
+  // ---------- people walking around ----------
+  // Deskmates take breaks at the staff places; visitors check in at reception and wait on the couch.
+  // Each place takes one person at a time.
+  const taken = new Set();
+  const staffPlaces = Object.keys(M.pois).filter((k) => M.pois[k].who === "staff");
+  const free = (names) => names.filter((n) => !taken.has(n));
+  const pickFree = (names) => { const f = free(names); return f.length ? f[Math.floor(Math.random() * f.length)] : null; };
+
   const agents = desks.map((d, seat) => {
     const st = M.stations[seat];
-    return { seat, x: st.feet.x, y: st.feet.y, face: "down", mode: "seated", path: null, seg: 0, poi: null,
+    return { seat, x: st.feet.x, y: st.feet.y, face: "down", mode: "seated", path: null, seg: 0, place: null,
       wait: 4 + seat * 3 + Math.random() * 8, walkT: 0, phoneSince: null };
   });
-  const poiNames = Object.keys(M.pois);
   const busy = (a) => activity[a.seat] !== "idle";
 
-  function startPath(a, path, mode) { a.path = path; a.seg = 1; a.mode = mode; }
-  function sendOnBreak(a, poiName) {
-    if (!desks[a.seat] || a.mode !== "seated" || busy(a)) return false;
-    a.poi = poiName;
-    startPath(a, M.stations[a.seat].paths[poiName], "walking");
+  function startPath(w, path, mode) { w.path = path; w.seg = 1; w.mode = mode; }
+  /** Moves along the path; returns true once at the end. */
+  function walk(w, dt, speed) {
+    let step = speed * dt;
+    while (step > 0 && w.seg < w.path.length) {
+      const [tx, ty] = w.path[w.seg];
+      const dx = tx - w.x, dy = ty - w.y, d = Math.hypot(dx, dy);
+      if (d > 0.01) w.face = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+      if (d <= step) { w.x = tx; w.y = ty; w.seg++; step -= d; } else { w.x += dx / d * step; w.y += dy / d * step; step = 0; }
+    }
+    w.walkT += dt * (speed / 30);
+    return w.seg >= w.path.length;
+  }
+  function sendOnBreak(a) {
+    const place = pickFree(staffPlaces);
+    if (!desks[a.seat] || a.mode !== "seated" || busy(a) || !place) return false;
+    a.place = place; taken.add(place);
+    startPath(a, M.stations[a.seat].paths[place], "walking");
     return true;
   }
-  function turnBack(a) {
-    const back = [[a.x, a.y], ...a.path.slice(0, a.seg).reverse()];
-    startPath(a, back, "returning");
+  function backToDesk(a) {
+    startPath(a, a.mode === "walking" ? [[a.x, a.y], ...a.path.slice(0, a.seg).reverse()] : [...a.path].reverse(), "returning");
   }
-  function update(a, dt) {
+  function updateAgent(a, dt) {
     if (!desks[a.seat]) return;
     if (a.mode === "seated") {
       if (!busy(a) && !reduceMotion) {
         a.wait -= dt;
-        if (a.wait <= 0) sendOnBreak(a, poiNames[Math.floor(Math.random() * poiNames.length)]) || (a.wait = 5);
+        if (a.wait <= 0) sendOnBreak(a) || (a.wait = 5);
       }
       return;
     }
-    if (a.mode === "atPoi") {
+    if (a.mode === "atPlace") {
       a.wait -= dt;
-      if (a.wait <= 0 || busy(a)) startPath(a, [...a.path].reverse(), "returning");
+      if (a.wait <= 0 || busy(a)) backToDesk(a);
       return;
     }
-    if (a.mode === "walking" && busy(a)) turnBack(a);
-    const speed = a.mode === "returning" && busy(a) ? 64 : 30;
-    let step = speed * dt;
-    while (step > 0 && a.seg < a.path.length) {
-      const [tx, ty] = a.path[a.seg];
-      const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
-      if (d > 0.01) a.face = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
-      if (d <= step) { a.x = tx; a.y = ty; a.seg++; step -= d; } else { a.x += dx / d * step; a.y += dy / d * step; step = 0; }
-    }
-    a.walkT += dt * (speed / 30);
-    if (a.seg >= a.path.length) {
-      if (a.mode === "walking") { a.mode = "atPoi"; a.face = M.pois[a.poi].face; a.wait = 2.5 + Math.random() * 3; }
-      else { a.mode = "seated"; a.face = "down"; a.wait = 10 + Math.random() * 14; }
+    if (a.mode === "walking" && busy(a)) backToDesk(a);
+    if (!walk(a, dt, a.mode === "returning" && busy(a) ? 64 : 30)) return;
+    if (a.mode === "walking") {
+      a.mode = "atPlace"; a.face = M.pois[a.place].face;
+      a.wait = (M.pois[a.place].pose ? 8 : 3) + Math.random() * 4;
+    } else {
+      taken.delete(a.place); a.place = null;
+      a.mode = "seated"; a.face = "down"; a.wait = 10 + Math.random() * 14;
     }
   }
   const seated = (seat) => agents[seat].mode === "seated";
+
+  const G = M.guests;
+  const guests = [];
+  let nextGuest = 6;
+  function spawnGuest() {
+    const seat = pickFree(G.seats);
+    const deskBusy = guests.some((g) => g.mode === "arriving" || g.mode === "atDesk");
+    if (!seat || guests.length >= 2 || deskBusy) return false;
+    taken.add(seat);
+    const look = GUEST_LOOKS[Math.floor(Math.random() * GUEST_LOOKS.length)];
+    const [x, y] = G.arrive[0];
+    guests.push({ look, x, y, face: "up", mode: "arriving", path: G.arrive, seg: 1, place: seat, wait: 0, walkT: 0 });
+    return true;
+  }
+  function updateGuests(dt) {
+    if (reduceMotion) return;
+    nextGuest -= dt;
+    if (nextGuest <= 0) { spawnGuest(); nextGuest = 22 + Math.random() * 25; }
+    for (const g of guests) {
+      if (g.mode === "atDesk" || g.mode === "waiting") {
+        g.wait -= dt;
+        if (g.wait > 0) continue;
+        if (g.mode === "atDesk") startPath(g, G.toSeat[g.place], "toSeat");
+        else startPath(g, G.leave[g.place], "leaving");
+        continue;
+      }
+      if (!walk(g, dt, 26)) continue;
+      if (g.mode === "arriving") { g.mode = "atDesk"; g.face = G.desk.face; g.wait = 2.5; }
+      else if (g.mode === "toSeat") { g.mode = "waiting"; g.face = M.pois[g.place].face; g.wait = 10 + Math.random() * 8; }
+      else { g.mode = "gone"; taken.delete(g.place); }
+    }
+    for (let i = guests.length - 1; i >= 0; i--) if (guests[i].mode === "gone") guests.splice(i, 1);
+  }
+
+  /** Draw order for someone at (x, y): a seat's own z while they're in it or stepping into it. */
+  function depth(w) {
+    const poi = w.place && M.pois[w.place];
+    if (poi && poi.approach && Math.abs(w.x - poi.x) < 0.5 && w.y < poi.approach[1] - 0.01) return Math.max(poi.z, w.y);
+    return w.y;
+  }
+  /** Frame for someone who isn't at their desk. */
+  function awayFrame(w, t, arrived) {
+    if (!arrived) return frameIndex("walk", w.face, Math.floor(w.walkT * 10));
+    const pose = (w.place && M.pois[w.place].pose) || "idle";
+    if (pose === "read") return frameIndex("read", null, Math.floor(t * 3));
+    return frameIndex(pose, w.face, Math.floor(t * 5));
+  }
 
   // ---------- one frame ----------
   const EMOTE = { ringing: "emote_ring", thinking: "emote_think", speaking: "emote_speak", human: "emote_boss" };
@@ -190,9 +252,8 @@
           if (d.line && act !== "dialing") drawSprite(ctx, ["listening", "thinking", "speaking", "human"].includes(act) ? "headset_live" : "headset", cx, cy, t, idle);
         });
       } else {
-        const walking = a.mode !== "atPoi";
-        const idx = walking ? frameIndex("walk", a.face, Math.floor(a.walkT * 10)) : frameIndex("idle", a.face, Math.floor(t * 5));
-        add(a.y, () => ctx.drawImage(sh, idx * 16, 0, 16, 32, cx, cy, 16, 32));
+        const idx = awayFrame(a, t, a.mode === "atPlace");
+        add(depth(a), () => ctx.drawImage(sh, idx * 16, 0, 16, 32, cx, cy, 16, 32));
       }
       const emote = EMOTE[act];
       if (emote) {
@@ -201,6 +262,11 @@
         add(10000, () => drawSprite(ctx, emote, bx - s.dx, by - s.h - s.dy, t));
       }
     });
+    for (const g of guests) {
+      const idx = g.mode === "atDesk" ? frameIndex("idle", g.face, Math.floor(t * 5)) : awayFrame(g, t, g.mode === "waiting");
+      const gx = Math.round(g.x) - 8, gy = Math.round(g.y) - 31;
+      add(depth(g), () => ctx.drawImage(strip(g.look), idx * 16, 0, 16, 32, gx, gy, 16, 32));
+    }
     items.sort((p, q) => p[0] - q[0]);
     for (const [, fn] of items) fn();
   }
@@ -354,6 +420,7 @@
   wander.addEventListener("click", () => {
     agents.forEach((a, i) => { if (a.mode === "seated") { a.wait = 0.2 + i * 0.5; } });
   });
+  document.getElementById("visitor").addEventListener("click", () => { spawnGuest(); });
 
   function jumpIn() {
     if (!live || live.human || !live.connected) return;
@@ -380,7 +447,8 @@
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     if (!reduceMotion) clock += dt;
-    agents.forEach((a) => update(a, dt));
+    agents.forEach((a) => updateAgent(a, dt));
+    updateGuests(dt);
     drawOffice(clock);
     portraits.forEach(({ cv, seat }) => drawPortrait(cv, seat, clock));
     requestAnimationFrame(tick);

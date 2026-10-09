@@ -43,6 +43,17 @@ DESKS = [
 ]
 
 
+# Visitors are drawn from this pool (the page only embeds the layers it needs).
+GUEST_LOOKS = [
+    {"skin": 3, "eyes": 2, "hair": 15, "hair_color": 1, "shirt": 28, "shirt_color": 2, "accessory": 0},
+    {"skin": 5, "eyes": 4, "hair": 2, "hair_color": 4, "shirt": 21, "shirt_color": 0, "accessory": 2},
+    {"skin": 0, "eyes": 1, "hair": 9, "hair_color": 3, "shirt": 7, "shirt_color": 1, "accessory": 0},
+    {"skin": 7, "eyes": 5, "hair": 24, "hair_color": 0, "shirt": 30, "shirt_color": 3, "accessory": 9},
+    {"skin": 2, "eyes": 0, "hair": 5, "hair_color": 6, "shirt": 12, "shirt_color": 2, "accessory": 0},
+    {"skin": 8, "eyes": 3, "hair": 17, "hair_color": 2, "shirt": 3, "shirt_color": 0, "accessory": 12},
+]
+
+
 def layers_for(c: dict, look: dict) -> list[str]:
     def pick(options, i):
         return options[abs(i) % len(options)]
@@ -71,15 +82,15 @@ def main():
 
     images = {manifest["atlas"]: data_uri(art / f"{manifest['atlas']}.png"),
               manifest["background"]: data_uri(art / f"{manifest['background']}.png")}
-    for d in DESKS:
-        if d:
-            for name in layers_for(manifest["characters"], d["look"]):
-                images[name] = data_uri(art / f"{name}.png")
+    for look in [d["look"] for d in DESKS if d] + GUEST_LOOKS:
+        for name in layers_for(manifest["characters"], look):
+            images[name] = data_uri(art / f"{name}.png")
 
     data = "\n".join([
         f"const OFFICE = {json.dumps(manifest, separators=(',', ':'))};",
         f"const IMAGES = {json.dumps(images)};",
         f"const DESKS = {json.dumps(DESKS)};",
+        f"const GUEST_LOOKS = {json.dumps(GUEST_LOOKS)};",
     ])
     page = (HERE / "preview.template.html").read_text()
     page = page.replace("/*__DATA__*/", data)

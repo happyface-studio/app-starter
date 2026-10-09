@@ -70,7 +70,7 @@ class Art:
         fw, fh = self.m["characters"]["frameW"], self.m["characters"]["frameH"]
         if "perDir" in a:
             i = frame if frame is not None else int(t * fps) % a["perDir"]
-            idx = a["start"] + a["dirs"].index(face) * a["perDir"] + i
+            idx = a["start"] + (a["dirs"].index(face) if face in a["dirs"] else 0) * a["perDir"] + i
         else:
             lo, hi = a["loop"]
             i = frame if frame is not None else lo + int(t * fps) % (hi - lo + 1)
@@ -100,7 +100,9 @@ class Art:
 
 
 def compose(art: Art, desks: list, walkers: list, t: float) -> Image.Image:
-    """desks: per seat None or {name, look, line, activity}; walkers: {look, x, y, face, frame}."""
+    """desks: per seat None or {name, look, line, activity, away}.
+    walkers: people away from their desk or visiting, {look, x, y, face, frame} while walking,
+    or {look, place} once they've arrived at one of the manifest's `pois`."""
     m = art.m
     canvas = art.bg.copy()
     items = []  # (z, image, x, y)
@@ -162,8 +164,16 @@ def compose(art: Art, desks: list, walkers: list, t: float) -> Image.Image:
 
     for w in walkers:
         strip = art.strip(w["look"])
-        fr, _ = art.char_frame(strip, "walk", t, w["face"], fps=10, frame=w.get("frame"))
-        items.append((w["y"], fr, w["x"] - 8, w["y"] - 31))
+        if "place" in w:
+            poi = m["pois"][w["place"]]
+            pose = poi.get("pose", "idle")
+            fps = 3 if pose == "read" else 5
+            fr, _ = art.char_frame(strip, pose, t, poi["face"], fps=fps)
+            x, y, z = poi["x"], poi["y"], poi.get("z", poi["y"])
+        else:
+            fr, _ = art.char_frame(strip, "walk", t, w["face"], fps=10, frame=w.get("frame"))
+            x, y, z = w["x"], w["y"], w["y"]
+        items.append((z, fr, x - 8, y - 31))
 
     items.sort(key=lambda it: it[0])
     for _, img, x, y in items:
@@ -181,12 +191,22 @@ SAMPLE = [
 ]
 
 
+GUEST_LOOKS = [
+    {"skin": 3, "eyes": 2, "hair": 15, "hair_color": 1, "shirt": 28, "shirt_color": 2, "accessory": 0},
+    {"skin": 5, "eyes": 4, "hair": 2, "hair_color": 4, "shirt": 21, "shirt_color": 0, "accessory": 2},
+]
+
+
 def still(manifest: dict, folder, path: str, scale: int = 3, t: float = 0.35):
+    """A sample moment: calls at four desks, Lena on a coffee break, two visitors."""
     art = Art(manifest, Path(folder))
-    path_pts = manifest["stations"][5]["paths"]["cooler"]
-    (x0, y0), (x1, y1) = path_pts[2], path_pts[3]
-    wx, wy = (x0 + x1) // 2, (y0 + y1) // 2
+    walkers = [
+        {"look": SAMPLE[5]["look"], "place": "table_left"},
+        {"look": GUEST_LOOKS[0], "place": "wait_sofa_right"},
+    ]
+    arrive = manifest["guests"]["arrive"]
+    (x0, y0), (x1, y1) = arrive[-2], arrive[-1]
     face = "left" if x1 < x0 else "right" if x1 > x0 else ("up" if y1 < y0 else "down")
-    walkers = [{"look": SAMPLE[5]["look"], "x": wx, "y": wy, "face": face, "frame": 2}]
+    walkers.append({"look": GUEST_LOOKS[1], "x": (x0 + x1) // 2, "y": (y0 + y1) // 2, "face": face, "frame": 1})
     img = compose(art, SAMPLE, walkers, t)
     img.resize((img.width * scale, img.height * scale), Image.NEAREST).save(path)

@@ -316,14 +316,36 @@ struct OfficeManifest: Decodable {
 		let bubble: Point
 		let tap: Rect
 		let exit: Point
-		/// Walk paths from the seat to each place in `pois`, as [x, y] corners.
+		/// Walk paths from the seat to each staff place in `pois`, as [x, y] corners.
 		let paths: [String: [[Int]]]
 	}
 
 	struct Place: Decodable {
+		/// "staff" (break spots for deskmates) or "guest" (seats for visitors).
+		let who: String
 		let x: Int
 		let y: Int
 		let face: String
+		/// "sit" or "read"; nil means standing.
+		let pose: String?
+		/// Seats: draw order while seated, and the free spot to walk to before stepping in.
+		let z: Int?
+		let approach: [Int]?
+	}
+
+	struct GuestDesk: Decodable {
+		let x: Int
+		let y: Int
+		let face: String
+	}
+
+	/// Visitor routes, as [x, y] corners. Seats are keys in `pois`.
+	struct Guests: Decodable {
+		let desk: GuestDesk
+		let seats: [String]
+		let arrive: [[Int]]
+		let toSeat: [String: [[Int]]]
+		let leave: [String: [[Int]]]
 	}
 
 	struct Anim: Decodable {
@@ -359,6 +381,7 @@ struct OfficeManifest: Decodable {
 	let desk: String
 	let stations: [Station]
 	let pois: [String: Place]
+	let guests: Guests?
 	let font: [String: [String]]
 	let fold: [String: String]
 	let characters: Characters

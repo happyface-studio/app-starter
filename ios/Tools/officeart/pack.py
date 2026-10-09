@@ -35,7 +35,7 @@ import scene  # noqa: E402
 REPO_OUT = Path(__file__).resolve().parents[2] / "Targets/OfficeKit/Resources/OfficeArt"
 
 FRAME_W, FRAME_H = 16, 32
-STRIP_FRAMES = sum(n for _, _, n in art.CHAR_ROWS)
+STRIP_FRAMES = sum(n for _, _, n, _ in art.CHAR_ROWS)
 
 OUTLINE = (58, 58, 80, 255)
 HEADSET = (58, 61, 78, 255)
@@ -59,6 +59,18 @@ class Sources:
     def crop(self, rel: str, rect) -> Image.Image:
         x, y, w, h = rect
         return self.image(rel).crop((x, y, x + w, y + h))
+
+    def sprite(self, spec) -> Image.Image:
+        """A STATIC entry: (sheet, rect), or a list of (sheet, rect, dx, dy) layers."""
+        if isinstance(spec, tuple):
+            return self.crop(*spec)
+        parts = [(self.crop(sheet, rect), dx, dy) for sheet, rect, dx, dy in spec]
+        w = max(img.width + dx for img, dx, _ in parts)
+        h = max(img.height + dy for img, _, dy in parts)
+        out = Image.new("RGBA", (w, h))
+        for img, dx, dy in parts:
+            out.alpha_composite(img, (dx, dy))
+        return out
 
     def gif_frames(self, rel: str) -> list[Image.Image]:
         return [f.convert("RGBA").copy() for f in ImageSequence.Iterator(Image.open(self.root / rel))]
@@ -119,7 +131,7 @@ def character_strip(src: Sources, rel: str) -> Image.Image:
     sheet = src.image(rel)
     strip = Image.new("RGBA", (STRIP_FRAMES * FRAME_W, FRAME_H))
     x = 0
-    for _, row, count in art.CHAR_ROWS:
+    for _, row, count, _ in art.CHAR_ROWS:
         for i in range(count):
             fr = sheet.crop((i * FRAME_W, row * FRAME_H, (i + 1) * FRAME_W, (row + 1) * FRAME_H))
             strip.alpha_composite(fr, (x, 0))
@@ -171,11 +183,8 @@ def character_catalog(src: Sources, out: Path | None):
 
     anims = {}
     start = 0
-    for name, _, count in art.CHAR_ROWS:
-        if count == 24:
-            anims[name] = {"start": start, "perDir": 6, "dirs": art.DIRS}
-        else:
-            anims[name] = {"start": start, "count": count, "loop": [3, 8]}
+    for name, _, count, layout in art.CHAR_ROWS:
+        anims[name] = {"start": start, **layout}
         start += count
     return {
         "frameW": FRAME_W,
@@ -219,9 +228,11 @@ def headset_frames(src: Sources, live: bool) -> list[Image.Image]:
 
 def stations():
     result = []
-    for seat in range(len(scene.ROWS) * len(scene.COLUMNS)):
-        cx = scene.COLUMNS[seat % 2]
-        dy = scene.ROWS[seat // 2]
+    cols = len(scene.COLUMNS)
+    for seat in range(len(scene.ROWS) * cols):
+        col = seat % cols
+        cx = scene.COLUMNS[col]
+        dy = scene.ROWS[seat // cols]
         dx = cx - scene.DESK_W // 2
         item = scene.DESK_ITEMS[seat]
         result.append({
@@ -234,8 +245,8 @@ def stations():
             "item": {"name": item, "x": dx + 14, "y": dy - 14} if item else None,
             "plate": {"cx": cx, "y": dy + scene.DESK_H + 2},
             "bubble": {"x": cx + 6, "y": dy - 9},
-            "tap": {"x": cx - 44, "y": dy - 26, "w": 88, "h": 60},
-            "exit": {"x": cx + 28 if seat % 2 == 0 else cx - 28, "y": dy + 3},
+            "tap": {"x": cx - 29, "y": dy - 26, "w": 58, "h": 60},
+            "exit": {"x": scene.EXIT_X[col], "y": dy + 3},
         })
     return result
 
@@ -313,39 +324,66 @@ def find_path(blocked_boxes, start, goal, step=2):
 
 def background(src: Sources, statics: dict[str, Image.Image]) -> Image.Image:
     bg = Image.new("RGBA", (scene.W, scene.H), (0, 0, 0, 0))
-    floor = src.crop(*art.FLOOR)
-    for y in range(scene.FLOOR_TOP, scene.H, floor.height):
-        for x in range(0, scene.W, floor.width):
-            bg.alpha_composite(floor, (x, y))
+    for name, zx, zy, zw, zh in scene.ZONES:
+        floor = src.crop(*art.FLOORS[name])
+        zone = Image.new("RGBA", (zw, zh))
+        for y in range(0, zh, floor.height):
+            for x in range(0, zw, floor.width):
+                zone.alpha_composite(floor, (x, y))
+        bg.paste(zone, (zx, zy))
     # The room-builder wall block is 32px; stretch its face so windows fit.
-    sheet, (wx, wy, _, _) = art.WALL
-    block = src.crop(sheet, (wx + 16, wy, 16, 32))
-    cap, face, base = block.crop((0, 0, 16, 6)), block.crop((0, 10, 16, 11)), block.crop((0, 27, 16, 32))
-    for x in range(0, scene.W, 16):
-        bg.alpha_composite(cap, (x, 0))
-        for y in range(6, scene.WALL_H - 5):
-            bg.alpha_composite(face, (x, y))
-        bg.alpha_composite(base, (x, scene.WALL_H - 5))
+    for name, x0, x1 in scene.WALL_SEGMENTS:
+        sheet, (wx, wy, _, _) = art.WALLS[name]
+        block = src.crop(sheet, (wx, wy, 16, 32))
+        # Rows 6-26 are the wall face; repeat them to fill the taller wall (keeps patterns intact).
+        cap, face, base = block.crop((0, 0, 16, 6)), block.crop((0, 6, 16, 27)), block.crop((0, 27, 16, 32))
+        strip = Image.new("RGBA", (x1 - x0, scene.WALL_H))
+        for x in range(0, x1 - x0, 16):
+            strip.alpha_composite(cap, (x, 0))
+            for y in range(6, scene.WALL_H - 5, face.height):
+                strip.alpha_composite(face.crop((0, 0, 16, min(face.height, scene.WALL_H - 5 - y))), (x, y))
+            strip.alpha_composite(base, (x, scene.WALL_H - 5))
+        bg.paste(strip, (x0, 0))
     bg.alpha_composite(Image.new("RGBA", (scene.W, 3), (20, 30, 40, 46)), (0, scene.FLOOR_TOP))
     for name, x, y in scene.WALL_DECOR + scene.FLOOR_DECOR:
         bg.alpha_composite(statics[name], (x, y))
     draw_border(bg)
+    draw_partition(bg)
     return bg
 
 
+BAND = (248, 248, 248, 255)
+
+
 def draw_border(img: Image.Image):
-    """LimeZu-style room outline: a white band with dark edges on the sides and bottom."""
+    """LimeZu-style room outline: a white band with dark edges on the sides and bottom, open at the door."""
     px = img.load()
     W, H, b = scene.W, scene.H, scene.BORDER
+    door0, door1 = scene.DOOR_X, scene.DOOR_X + scene.DOOR_W
     for y in range(H):
         for x in range(W):
-            d = min(x, W - 1 - x, H - 1 - y)
-            if y < 6 and d >= b:
-                continue
-            if d < b:
-                px[x, y] = OUTLINE if d in (0, b - 1) else (248, 248, 248, 255)
+            side = min(x, W - 1 - x)
+            bottom = H - 1 - y
+            if side < b:
+                px[x, y] = OUTLINE if side in (0, b - 1) else BAND
+            elif bottom < b and not (door0 <= x < door1):
+                edge = bottom in (0, b - 1) or x in (door0 - 1, door1)
+                px[x, y] = OUTLINE if edge else BAND
     for x in range(W):
         px[x, 0] = OUTLINE
+
+
+def draw_partition(img: Image.Image):
+    """The kitchen's left wall: a band from the top wall down, closed at its end."""
+    px = img.load()
+    x0, y1 = scene.PARTITION_X, scene.KITCHEN_BOTTOM
+    for y in range(0, y1):
+        for dx in range(4):
+            px[x0 + dx, y] = OUTLINE if dx in (0, 3) or y == y1 - 1 else BAND
+    # its end face, like the baseboard on the room walls
+    for dx in range(4):
+        px[x0 + dx, y1] = (20, 30, 40, 70)
+        px[x0 + dx, y1 + 1] = (20, 30, 40, 40)
 
 
 # ---------------------------------------------------------------------------
@@ -354,8 +392,8 @@ def draw_border(img: Image.Image):
 def build(src: Sources, out: Path | None):
     atlas = Atlas()
     statics = {}
-    for name, (sheet, rect) in art.STATIC.items():
-        img = src.crop(sheet, rect)
+    for name, spec in art.STATIC.items():
+        img = src.sprite(spec)
         statics[name] = img
         atlas.add(name, [img], trim=False)
     for name, (sheet, fw, fh, count, fps) in art.ANIMATED.items():
@@ -369,12 +407,37 @@ def build(src: Sources, out: Path | None):
     atlas.add("headset_live", headset_frames(src, live=True), trim=False)
 
     blocked = footprints(atlas)
+
+    def route(start, poi):
+        """Walk to a place; seats get a last straight step from their approach spot into the seat."""
+        if "approach" in poi:
+            return find_path(blocked, start, poi["approach"]) + [[poi["x"], poi["y"]]]
+        return find_path(blocked, start, (poi["x"], poi["y"]))
+
     st = stations()
+    staff = {k: v for k, v in scene.POIS.items() if v["who"] == "staff"}
+    guest_seats = {k: v for k, v in scene.POIS.items() if v["who"] == "guest"}
     for s in st:
         s["paths"] = {}
-        for poi_name, poi in scene.POIS.items():
-            path = find_path(blocked, (s["exit"]["x"], s["exit"]["y"]), (poi["x"], poi["y"]))
-            s["paths"][poi_name] = [[s["feet"]["x"], s["feet"]["y"]]] + path
+        for poi_name, poi in staff.items():
+            s["paths"][poi_name] = [[s["feet"]["x"], s["feet"]["y"]]] + route((s["exit"]["x"], s["exit"]["y"]), poi)
+
+    g = scene.GUESTS
+    desk = (g["desk"]["x"], g["desk"]["y"])
+    guests = {
+        "desk": g["desk"],
+        "seats": list(guest_seats),
+        # outside -> door -> reception
+        "arrive": [g["outside"]] + find_path(blocked, g["inside"], desk),
+        # reception -> seat
+        "toSeat": {name: route(desk, poi) for name, poi in guest_seats.items()},
+        # seat -> door -> outside
+        "leave": {
+            name: [[poi["x"], poi["y"]]] + find_path(blocked, poi.get("approach", (poi["x"], poi["y"])), g["inside"])
+            + [g["outside"]]
+            for name, poi in guest_seats.items()
+        },
+    }
 
     sheet = atlas.pack()
     bg = background(src, statics)
@@ -394,6 +457,7 @@ def build(src: Sources, out: Path | None):
         "desk": scene.DESK,
         "stations": st,
         "pois": scene.POIS,
+        "guests": guests,
         "font": art.FONT,
         "fold": art.FOLD,
         "characters": character_catalog(src, out),
