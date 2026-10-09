@@ -109,6 +109,46 @@ The office uses LimeZu's Modern Office and Modern Interiors packs. Their license
 
 Run it on a device so you can test the microphone. Sign in, hire a deskmate, and tap **Talk to …**.
 
+## Release pipeline
+
+iOS builds run on Xcode Cloud (team `HZ6WJGMKG3`, bundle `studio.happyface.deskmates`), set up the same way as HappyMe.
+
+| Branch | Xcode Cloud workflow | What a push produces |
+|---|---|---|
+| `dev` | **Developer Build** | Internal-only archive, uploaded to TestFlight and sent to the internal group "Dev Team" |
+| `main` | **Release Build** | App Store–eligible archive in App Store Connect, ready to attach to a version and submit for review (also sent to "Dev Team" in TestFlight) |
+
+- Day to day: commit to `dev` (or merge feature branches into it) and test the TestFlight build. To release: merge `dev` into `main`, then submit the new build in App Store Connect.
+- Builds start only when something under `ios/` changes, so backend, agent and doc commits don't use build minutes. Either workflow can also be started by hand in App Store Connect → Xcode Cloud.
+- Build numbers come from Xcode Cloud. Bump `appVersion` in `ios/Project.swift` for each App Store release.
+- `ios/ci_scripts/ci_post_clone.sh` writes the Kit plists from the workflow's environment variables, sets the build number, installs Tuist via mise and generates the workspace. Every Kit linked in `Project.swift` reads its keys at launch and stops the app without them, so a missing variable fails the build with its name instead of producing a build that crashes on open.
+
+### One-time setup
+
+1. **Pin the packages.** On your Mac: `cd ios && mise install && tuist generate`, then build once in Xcode. Commit the `ios/.package.resolved` that Tuist writes. Xcode Cloud never resolves packages on its own; the post-clone script resolves them if the file is missing, but then versions below each pin can drift.
+2. **Register the app IDs.** Build to a device once with automatic signing (team HappyFace Studio). That registers `studio.happyface.deskmates` with Sign in with Apple, Push Notifications and the App Group `group.studio.happyface.deskmates.onesignal`, plus `studio.happyface.deskmates.OneSignalNotificationServiceExtension`.
+3. **Create the Xcode Cloud product.** In Xcode: Integrate → Create Workflow… → app **Deskmates**. Let Xcode create the App Store Connect app record and grant Xcode Cloud access to this GitHub repo. Then create an internal TestFlight group "Dev Team" in App Store Connect.
+4. **Create the two workflows** (App Store Connect → Xcode Cloud → Manage Workflows):
+
+   | | Developer Build | Release Build |
+   |---|---|---|
+   | Start condition | Branch Changes: `dev`, Files and Folders: `ios/` | Branch Changes: `main`, Files and Folders: `ios/` |
+   | Environment | Xcode: Latest Release (16.3 or newer) | same |
+   | Action | Archive – iOS, deployment preparation **TestFlight (Internal Testing Only)** | Archive – iOS, deployment preparation **TestFlight and App Store** |
+   | Post-action | TestFlight Internal Testing → Dev Team | TestFlight Internal Testing → Dev Team |
+
+   Environment variables on both (mark them secret; dev values on Developer Build, production values on Release Build):
+
+   | Variable | Kit |
+   |---|---|
+   | `SUPABASE_URL`, `SUPABASE_KEY` | SupabaseKit |
+   | `POSTHOG_API_KEY`, `POSTHOG_HOST` | AnalyticsKit |
+   | `REVENUECAT_API_KEY` | InAppPurchaseKit |
+   | `ONESIGNAL_APP_ID` | NotifKit |
+
+5. **Grant package access.** The first build lists the package repositories it needs (LiveKit, WebRTC, Supabase, RevenueCat, PostHog, OneSignal and their dependencies). Grant them in App Store Connect → Xcode Cloud → Settings → Repositories, then rebuild.
+6. **Export compliance.** Calls are encrypted by LiveKit's WebRTC stack, not only by Apple's HTTPS, so the app doesn't declare "no non-exempt encryption" the way HappyMe does. Answer the encryption questions in App Store Connect for the first build, then add the matching key to the app's Info.plist in `Project.swift` (`ITSAppUsesNonExemptEncryption`, plus `ITSEncryptionExportComplianceCode` if Apple issues a code). Until then, every new build waits for the same answer before testers can install it.
+
 ## Known limits and next steps
 
 - **LiveKit Phone Numbers** are US-only and inbound-only today, and calls can't be transferred yet. For European numbers or any outbound calling, use the studio trunk.

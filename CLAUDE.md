@@ -64,7 +64,9 @@ Before any `db:push` or deployment:
 
 ## CI/CD — Xcode Cloud
 
-iOS builds run on **Xcode Cloud**. The post-clone script (`ios/ci_scripts/ci_post_clone.sh`) installs Tuist via `mise`, writes per-Kit `*-Info.plist` files from workflow environment variables, then runs `tuist generate`.
+iOS builds run on **Xcode Cloud** (team `HZ6WJGMKG3`, automatic signing). Pushing to `dev` runs **Developer Build** (internal TestFlight, group "Dev Team"); pushing to `main` runs **Release Build** (App Store–eligible build). Both only start when files under `ios/` change. Setup steps: README → Release pipeline.
+
+The post-clone script (`ios/ci_scripts/ci_post_clone.sh`) writes per-Kit `*-Info.plist` files from workflow environment variables, sets the build number from `CI_BUILD_NUMBER`, installs Tuist via `mise`, runs `tuist generate` and makes sure the workspace has a `Package.resolved` (Xcode Cloud never resolves packages itself). Keep `ios/.package.resolved` committed so package versions stay pinned. It must stay bash 3.2 compatible (macOS `/bin/bash`).
 
 Set these env vars in App Store Connect → Xcode Cloud → Workflow → Environment:
 
@@ -75,7 +77,7 @@ Set these env vars in App Store Connect → Xcode Cloud → Workflow → Environ
 | `REVENUECAT_API_KEY` | InAppPurchaseKit |
 | `ONESIGNAL_APP_ID` | NotifKit |
 
-Each block in `ci_post_clone.sh` is conditional — apps that don't use a given integration can leave its env vars unset and the build still succeeds.
+A Kit linked in `Project.swift` stops the app at launch without its keys, so the script fails the build when one of its variables is missing. Kits whose `add…Kit()` call is commented out (as in HappyMe) need none.
 
 ## Bootstrapping from this template
 

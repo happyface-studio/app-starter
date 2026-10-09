@@ -89,6 +89,9 @@ func tuistProject() -> Project {
 			"ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS": "YES",
 			"MARKETING_VERSION": .string(appVersion),
 			"CURRENT_PROJECT_VERSION": .string(appBuildNumber),
+			// Xcode Cloud signs with cloud-managed certificates for this team.
+			"DEVELOPMENT_TEAM": "HZ6WJGMKG3",
+			"CODE_SIGN_STYLE": "Automatic",
 		]),
 		targets: projectTargets
 	)
