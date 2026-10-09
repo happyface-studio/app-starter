@@ -19,7 +19,7 @@ struct SignedInGate<Content: View>: View {
 			content()
 		} else {
 			VStack(spacing: 20) {
-				PortraitView(look: Look(skin: 1, hair: 1, hairColor: 2, shirt: 0, accessory: 0), activity: .idle)
+				PortraitView(look: Look(skin: 1, hair: 1, hairColor: 2, shirt: 0, accessory: 0), activity: .idle, hasLine: false)
 					.frame(width: 140, height: 140)
 					.clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 				Text(prompt)

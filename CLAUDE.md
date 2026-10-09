@@ -57,7 +57,7 @@ Before any `db:push` or deployment:
 
 - **Database migrations**: Plain SQL in `backend/supabase/migrations/`. See `backend/CLAUDE.md`.
 - **iOS modules**: Tuist multi-target architecture. Each Kit is a separate framework — App, SharedKit, SupabaseKit, AnalyticsKit, InAppPurchaseKit, NotifKit, OfficeKit (the pixel office + LiveKit calling).
-- **Pixel art**: edit `ios/Tools/pixelart/design.py`, regenerate `PixelArt.swift` with `gen.py`; `OfficeRenderer.swift` mirrors `render.py`.
+- **Office art**: LimeZu sprites packed by `ios/Tools/officeart/pack.py` (layout in `scene.py`, sprite picks in `art.py`). The PNGs are licensed and gitignored; never commit them or anything embedding them (e.g. the web preview). `Sources/Sprites/OfficeScene.swift` mirrors `render.py`. When the art isn't packed, OfficeKit falls back to the procedural sprites in `ios/Tools/pixelart` (`design.py` → `gen.py` → `PixelArt.swift`).
 - **Agent ↔ app contract**: job metadata `{direction, call_id, desk_id, to, from, trunk_id, brief}`; RPC `deskmates.handoff` (owner takes over); owner participants use identity `owner-<user id>`.
 - **Secrets**: Never commit. iOS reads from `ios/Secrets.xcconfig` (gitignored) locally and from Xcode Cloud env vars in CI. Backend reads from Supabase secrets (`supabase secrets set ...`).
 - **Bundle ID**: `studio.happyface.deskmates`

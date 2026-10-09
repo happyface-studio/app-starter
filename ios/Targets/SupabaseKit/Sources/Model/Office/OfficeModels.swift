@@ -1,43 +1,56 @@
 import Foundation
 
-/// How a deskmate looks. Indices into the pixel-art palettes in OfficeKit.
+/// How a deskmate looks. Indices into the character layers in OfficeKit (LimeZu generator art when
+/// it's packed, the procedural sprites otherwise). Renderers wrap every index, so any Int is valid.
 public struct Look: Codable, Hashable, Sendable {
 	public var skin: Int
+	public var eyes: Int
 	public var hair: Int
 	public var hairColor: Int
 	public var shirt: Int
+	public var shirtColor: Int
 	public var accessory: Int
 
-	public init(skin: Int = 0, hair: Int = 0, hairColor: Int = 0, shirt: Int = 0, accessory: Int = 0) {
+	public init(
+		skin: Int = 0, eyes: Int = 0, hair: Int = 0, hairColor: Int = 0, shirt: Int = 0, shirtColor: Int = 0,
+		accessory: Int = 0
+	) {
 		self.skin = skin
+		self.eyes = eyes
 		self.hair = hair
 		self.hairColor = hairColor
 		self.shirt = shirt
+		self.shirtColor = shirtColor
 		self.accessory = accessory
 	}
 
 	public static func random() -> Look {
 		Look(
-			skin: Int.random(in: 0..<5),
-			hair: Int.random(in: 0..<6),
+			skin: Int.random(in: 0..<9),
+			eyes: Int.random(in: 0..<7),
+			hair: Int.random(in: 0..<26),
 			hairColor: Int.random(in: 0..<7),
-			shirt: Int.random(in: 0..<8),
-			accessory: Int.random(in: 0..<2)
+			shirt: Int.random(in: 0..<33),
+			shirtColor: Int.random(in: 0..<5),
+			accessory: Bool.random() ? 0 : Int.random(in: 1..<12)
 		)
 	}
 
 	enum CodingKeys: String, CodingKey {
-		case skin, hair, shirt, accessory
+		case skin, eyes, hair, shirt, accessory
 		case hairColor = "hair_color"
+		case shirtColor = "shirt_color"
 	}
 
 	// `look` is jsonb with a `{}` default, so every field may be missing.
 	public init(from decoder: Decoder) throws {
 		let c = try decoder.container(keyedBy: CodingKeys.self)
 		skin = try c.decodeIfPresent(Int.self, forKey: .skin) ?? 0
+		eyes = try c.decodeIfPresent(Int.self, forKey: .eyes) ?? 0
 		hair = try c.decodeIfPresent(Int.self, forKey: .hair) ?? 0
 		hairColor = try c.decodeIfPresent(Int.self, forKey: .hairColor) ?? 0
 		shirt = try c.decodeIfPresent(Int.self, forKey: .shirt) ?? 0
+		shirtColor = try c.decodeIfPresent(Int.self, forKey: .shirtColor) ?? 0
 		accessory = try c.decodeIfPresent(Int.self, forKey: .accessory) ?? 0
 	}
 }

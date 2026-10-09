@@ -134,7 +134,7 @@ struct DeskEditorView: View {
 	}
 }
 
-/// Pixel look editor: live portrait plus swatches for every layer of the sprite.
+/// Look editor: live portrait plus a row per character layer.
 struct LookEditor: View {
 	@Binding var look: Look
 
@@ -156,11 +156,15 @@ struct LookEditor: View {
 				.accessibilityLabel("Shuffle look")
 			}
 
-			SwatchRow(title: "Skin", colors: PixelArt.skins.map(\.0), selection: $look.skin)
-			ChipRow(title: "Hair", names: PixelArt.hairStyleNames, selection: $look.hair)
-			SwatchRow(title: "Hair color", colors: PixelArt.hairColors.map(\.0), selection: $look.hairColor)
-			SwatchRow(title: "Top", colors: PixelArt.shirts.map(\.0), selection: $look.shirt)
-			ChipRow(title: "Extras", names: PixelArt.accessoryNames, selection: $look.accessory)
+			if let art = OfficeArt.shared {
+				SpriteLookRows(art: art, look: $look)
+			} else {
+				SwatchRow(title: "Skin", colors: PixelArt.skins.map(\.0), selection: $look.skin)
+				ChipRow(title: "Hair", names: PixelArt.hairStyleNames, selection: $look.hair)
+				SwatchRow(title: "Hair color", colors: PixelArt.hairColors.map(\.0), selection: $look.hairColor)
+				SwatchRow(title: "Top", colors: PixelArt.shirts.map(\.0), selection: $look.shirt)
+				ChipRow(title: "Extras", names: PixelArt.accessoryNames, selection: $look.accessory)
+			}
 		}
 		.padding(.vertical, 8)
 	}
@@ -185,13 +189,13 @@ private struct SwatchRow: View {
 								.frame(width: 30, height: 30)
 								.overlay {
 									RoundedRectangle(cornerRadius: 6, style: .continuous)
-										.strokeBorder(Color.primary, lineWidth: selection == index ? 2.5 : 0)
+										.strokeBorder(Color.primary, lineWidth: selection % colors.count == index ? 2.5 : 0)
 										.padding(-4)
 								}
 						}
 						.buttonStyle(.plain)
 						.accessibilityLabel("\(title) \(index + 1)")
-						.accessibilityAddTraits(selection == index ? .isSelected : [])
+						.accessibilityAddTraits(selection % colors.count == index ? .isSelected : [])
 					}
 				}
 				.padding(4)
@@ -215,8 +219,8 @@ private struct ChipRow: View {
 						Button(names[index]) { selection = index }
 							.font(.rounded(.subheadline, weight: .medium))
 							.buttonStyle(.bordered)
-							.tint(selection == index ? Color.accentColor : .secondary)
-							.accessibilityAddTraits(selection == index ? .isSelected : [])
+							.tint(selection % names.count == index ? Color.accentColor : .secondary)
+							.accessibilityAddTraits(selection % names.count == index ? .isSelected : [])
 					}
 				}
 			}

@@ -3,7 +3,15 @@ import Foundation
 import SupabaseKit
 
 enum DeskActivity: Equatable {
-	case idle, ringing, listening, thinking, speaking, human
+	case idle, ringing, dialing, listening, thinking, speaking, human
+
+	/// Someone is on the line (as opposed to the phone ringing or being dialed).
+	var isTalking: Bool {
+		switch self {
+			case .listening, .thinking, .speaking, .human: true
+			case .idle, .ringing, .dialing: false
+		}
+	}
 
 	init(call: Call?) {
 		guard let call, call.isLive else {
@@ -11,7 +19,8 @@ enum DeskActivity: Equatable {
 			return
 		}
 		switch call.status {
-			case .ringing, .dialing: self = .ringing
+			case .ringing: self = .ringing
+			case .dialing: self = .dialing
 			case .human: self = .human
 			default:
 				switch call.agentState {
@@ -197,7 +206,7 @@ enum OfficeRenderer {
 		buf.blit(PixelArt.mug, ox + L.mug.x, oy + L.mug.y, pal)
 		buf.blit(PixelArt.steam[(t / 4) % 2], ox + L.mug.x, oy + L.mug.y - 3, ["w": 0xE8EEF2])
 
-		let ringing = desk.activity == .ringing
+		let ringing = desk.activity == .ringing || desk.activity == .dialing
 		let jiggle = ringing && t % 10 < 6 ? (t % 2 == 1 ? -1 : 1) : 0
 		let phx = ox + L.phone.x + jiggle
 		let phy = oy + L.phone.y
@@ -206,7 +215,7 @@ enum OfficeRenderer {
 		var lamp = pal["o"]!
 		if desk.hasLine {
 			switch desk.activity {
-				case .ringing: lamp = t % 4 < 2 ? PixelArt.amber : pal["o"]!
+				case .ringing, .dialing: lamp = t % 4 < 2 ? PixelArt.amber : pal["o"]!
 				case .listening, .thinking, .speaking, .human: lamp = t % 8 < 5 ? PixelArt.mint : 0x3E8C6A
 				case .idle: lamp = PixelArt.mint
 			}

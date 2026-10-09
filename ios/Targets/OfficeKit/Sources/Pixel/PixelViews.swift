@@ -3,13 +3,13 @@ import SwiftUI
 
 /// Picks the largest whole number of device pixels per art pixel that fits, so every art pixel
 /// is the same size on screen.
-private func crispPointsPerPixel(fitting width: CGFloat, artWidth: Int, displayScale: CGFloat) -> CGFloat {
+func crispPointsPerPixel(fitting width: CGFloat, artWidth: Int, displayScale: CGFloat) -> CGFloat {
 	let devicePixels = max(1, floor(width * displayScale / CGFloat(artWidth)))
 	return devicePixels / displayScale
 }
 
 /// Drives pixel animation at 8 fps; frozen when Reduce Motion is on.
-private struct PixelClock<Content: View>: View {
+struct PixelClock<Content: View>: View {
 	@Environment(\.accessibilityReduceMotion) private var reduceMotion
 	@ViewBuilder var content: (_ frame: Int, _ date: Date) -> Content
 
@@ -21,7 +21,21 @@ private struct PixelClock<Content: View>: View {
 	}
 }
 
+/// The office floor. Uses the packed LimeZu art when it's in the bundle, else the procedural sprites.
 struct OfficeSceneView: View {
+	let seats: [DeskSnapshot?]
+	let onTapSeat: (Int) -> Void
+
+	var body: some View {
+		if let art = OfficeArt.shared {
+			SpriteOfficeView(art: art, seats: seats, onTapSeat: onTapSeat)
+		} else {
+			PixelOfficeView(seats: seats, onTapSeat: onTapSeat)
+		}
+	}
+}
+
+struct PixelOfficeView: View {
 	let seats: [DeskSnapshot?]
 	let onTapSeat: (Int) -> Void
 
@@ -66,22 +80,43 @@ struct OfficeSceneView: View {
 	}
 
 	private func accessibilityLabel(for seat: Int) -> String {
-		guard let desk = seats[seat] else { return "Empty desk. Hire a deskmate." }
-		let status: String =
-			switch desk.activity {
-				case .idle: desk.hasLine ? "Waiting for calls" : "No phone yet"
-				case .ringing: "Phone ringing"
-				case .listening: "On a call, listening"
-				case .thinking: "On a call, thinking"
-				case .speaking: "On a call, talking"
-				case .human: "You're on this call"
-			}
-		return "\(desk.name)'s desk. \(status)."
+		seatAccessibilityLabel(seats[seat])
 	}
 }
 
-/// One deskmate on their chair, animated.
+func seatAccessibilityLabel(_ desk: DeskSnapshot?) -> String {
+	guard let desk else { return "Empty desk. Hire a deskmate." }
+	let status: String =
+		switch desk.activity {
+			case .idle: desk.hasLine ? "Waiting for calls" : "No phone yet"
+			case .ringing: "Phone ringing"
+			case .dialing: "Dialing out"
+			case .listening: "On a call, listening"
+			case .thinking: "On a call, thinking"
+			case .speaking: "On a call, talking"
+			case .human: "You're on this call"
+		}
+	return "\(desk.name)'s desk. \(status)."
+}
+
+/// One deskmate, head and shoulders, animated.
 struct PortraitView: View {
+	let look: Look
+	var activity: DeskActivity = .idle
+	/// Deskmates with a phone line wear a headset.
+	var hasLine = true
+	var background: Color = Theme.carpet
+
+	var body: some View {
+		if let art = OfficeArt.shared {
+			SpritePortraitView(art: art, look: look, activity: activity, hasLine: hasLine, background: background)
+		} else {
+			PixelPortraitView(look: look, activity: activity, background: background)
+		}
+	}
+}
+
+struct PixelPortraitView: View {
 	let look: Look
 	var activity: DeskActivity = .idle
 	var background: Color = Theme.carpet

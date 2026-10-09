@@ -14,7 +14,7 @@ struct HireSheet: View {
 
 	var body: some View {
 		VStack(spacing: 20) {
-			PortraitView(look: look, activity: .idle)
+			PortraitView(look: look, activity: .idle, hasLine: false)
 				.frame(width: 120, height: 120)
 				.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 				.overlay(alignment: .bottomTrailing) {
@@ -206,7 +206,7 @@ struct DeskSheet: View {
 
 	private func header(_ desk: Desk, live: Call?) -> some View {
 		VStack(spacing: 12) {
-			PortraitView(look: desk.look, activity: DeskActivity(call: live))
+			PortraitView(look: desk.look, activity: DeskActivity(call: live), hasLine: office.line(for: desk) != nil)
 				.frame(width: 132, height: 132)
 				.clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 			VStack(spacing: 2) {

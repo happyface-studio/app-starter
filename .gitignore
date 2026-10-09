@@ -301,3 +301,10 @@ backend/.env
 backend/node_modules/
 backend/supabase/.branches/
 backend/supabase/.temp/
+### Deskmates office art ###
+# LimeZu packs are licensed for use in the app, not for redistribution. Generate locally with
+# ios/Tools/officeart/pack.py.
+ios/Targets/OfficeKit/Resources/OfficeArt/*.png
+ios/Targets/OfficeKit/Resources/OfficeArt/*.json
+ios/Tools/officeart/preview.html
+__pycache__/

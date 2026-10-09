@@ -293,7 +293,12 @@ func tuistProject() -> Project {
 			deploymentTargets: .iOS(osVersion),
 			infoPlist: .extendingDefault(with: defaultModuleInfoPlist),
 			sources: ["Targets/\(targetName)/Sources/**"],
-			resources: [baseAppResources],
+			resources: [
+				baseAppResources,
+				// LimeZu office art, written by ios/Tools/officeart/pack.py. Gitignored (licensed, not redistributable).
+				.glob(pattern: "Targets/\(targetName)/Resources/OfficeArt/*.png"),
+				.glob(pattern: "Targets/\(targetName)/Resources/OfficeArt/*.json"),
+			],
 			dependencies: [
 				sharedKit,
 				analyticsKit,

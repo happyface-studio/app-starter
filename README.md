@@ -33,9 +33,10 @@ Build your own little call center on your phone. Hire pixel deskmates, give each
 
 | Path | What |
 |---|---|
-| `ios/Targets/OfficeKit` | New module: pixel renderer, office, desk editor, number picker, dialer, call log, call screen |
+| `ios/Targets/OfficeKit` | New module: SpriteKit office, desk editor, number picker, dialer, call log, call screen |
 | `ios/Targets/SupabaseKit/Sources/Model/Office` | Models and `OfficeStore` (queries, edge functions, Realtime) |
-| `ios/Tools/pixelart` | Pixel art source (`design.py`), reference renderer and Swift generator |
+| `ios/Tools/officeart` | Packs the LimeZu office and character art into the app (art is local only, see below) |
+| `ios/Tools/pixelart` | Procedural fallback sprites, used when the LimeZu art isn't packed |
 | `backend/supabase/migrations/20261008120000_deskmates.sql` | `desks`, `phone_lines`, `calls`, RLS, `plug_line()` |
 | `backend/supabase/functions` | `session-token`, `phone-numbers`, `place-call`, `end-call` |
 | `agent/` | Python LiveKit agent (Agents 1.8) |
@@ -100,8 +101,11 @@ Needs **Xcode 16.3+**, because LiveKit 2.17 uses Swift tools 6.1.
 
 ```bash
 cd ios && cp Secrets.xcconfig.template Secrets.xcconfig   # Supabase URL + anon key
+python3 Tools/officeart/pack.py --limezu "<folder with the LimeZu packs>"   # office art, see below
 mise install && tuist generate && open Deskmates.xcworkspace
 ```
+
+The office uses LimeZu's Modern Office and Modern Interiors packs. Their license lets us ship the art in the app but not share the files, so they stay out of git and `pack.py` builds them into `Targets/OfficeKit/Resources/OfficeArt` on your machine. Skip that step and the app falls back to simpler procedural sprites. Details in [`ios/Tools/officeart/README.md`](./ios/Tools/officeart/README.md).
 
 Run it on a device so you can test the microphone. Sign in, hire a deskmate, and tap **Talk to …**.
 
@@ -113,3 +117,4 @@ Run it on a device so you can test the microphone. Sign in, hire a deskmate, and
 - **Billing.** Every rented number and call minute bills to the studio's LiveKit project. Prototype limits are in edge-function env vars. Gate them behind RevenueCat before shipping (InAppPurchaseKit is still in the template).
 - **Agent tools.** Only `take_message` and `end_call` so far. Calendar booking, FAQ lookup and SMS follow-ups are natural next tools.
 - **Not yet compiled.** The Swift code was reviewed against the LiveKit 2.17.0 and supabase-swift 2.20.5 sources and parse-checked, but it hasn't gone through Xcode yet. Expect a few fixes on the first build.
+- **Credits.** LimeZu's Modern Interiors license requires a credit. Add "Pixel art by LimeZu" to the app's about/settings screen before shipping.
