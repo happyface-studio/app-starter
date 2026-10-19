@@ -66,6 +66,7 @@ final class ExploreStore {
     var selection: Selection?
     var mood: MapMood = .day
     var is3D = true
+    var showsUserLocation = false
     var plannedEventIDs: Set<String> = []
 
     init(places: [Place] = SeedData.places, events: [CityEvent] = SeedData.events()) {

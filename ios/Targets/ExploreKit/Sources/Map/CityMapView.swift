@@ -35,7 +35,9 @@ struct CityMapView: View {
                 .priority(store.selection == .event(event.id) ? 10 : 3)
             }
 
-            Puck2D(bearing: .heading)
+            if store.showsUserLocation {
+                Puck2D(bearing: .heading)
+            }
         }
         .mapStyle(CityStyle.mapStyle(for: store.mood))
         .ornamentOptions(
@@ -58,12 +60,12 @@ struct CityMapView: View {
                 }
             guard let coordinate else { return }
             withViewportAnimation(.fly(duration: 1.1)) {
-                viewport = .camera(center: coordinate, zoom: 17, bearing: -18, pitch: store.is3D ? 62 : 0)
+                viewport = .camera(center: coordinate, zoom: 17.6, bearing: -18, pitch: store.is3D ? 58 : 0)
             }
         }
         .onChange(of: store.is3D) { _, is3D in
             withViewportAnimation(.easeInOut(duration: 0.7)) {
-                viewport = .camera(center: Frankfurt.center, zoom: is3D ? 16.2 : 14.6, bearing: is3D ? -18 : 0, pitch: is3D ? 62 : 0)
+                viewport = .camera(center: Frankfurt.center, zoom: is3D ? 16.9 : 14.6, bearing: is3D ? -18 : 0, pitch: is3D ? 58 : 0)
             }
         }
     }
@@ -74,6 +76,6 @@ struct CityMapView: View {
     }
 
     static var initialViewport: Viewport {
-        .camera(center: Frankfurt.center, zoom: 16.2, bearing: -18, pitch: 62)
+        .camera(center: Frankfurt.center, zoom: 16.9, bearing: -18, pitch: 58)
     }
 }

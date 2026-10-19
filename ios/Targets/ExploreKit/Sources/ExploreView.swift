@@ -12,7 +12,7 @@ public struct ExploreView: View {
     public var body: some View {
         Group {
             if hasToken {
-                CityMapView(store: store, viewport: $viewport, bottomInset: 96)
+                CityMapView(store: store, viewport: $viewport, bottomInset: 84)
                     .overlay(alignment: .topTrailing) {
                         MapControls(store: store, viewport: $viewport)
                             .padding(.trailing, 14)
@@ -122,6 +122,7 @@ struct MapControls: View {
             }
             Divider().frame(width: 28)
             Button {
+                store.showsUserLocation = true
                 withViewportAnimation(.fly(duration: 1)) {
                     viewport = .followPuck(zoom: 16.5, bearing: .constant(0), pitch: store.is3D ? 60 : 0)
                 }

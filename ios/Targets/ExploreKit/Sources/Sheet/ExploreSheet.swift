@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension PresentationDetent {
-    static let peek = PresentationDetent.height(96)
+    static let peek = PresentationDetent.height(84)
     static let half = PresentationDetent.fraction(0.44)
 }
 
