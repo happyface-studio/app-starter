@@ -61,7 +61,7 @@ struct CityMapView: View {
                 }
             guard let coordinate else { return }
             withViewportAnimation(.fly(duration: 1.1)) {
-                viewport = .camera(center: coordinate, zoom: 17.6, bearing: -18, pitch: store.is3D ? 58 : 0)
+                viewport = .camera(center: coordinate, zoom: 17.2, bearing: -18, pitch: store.is3D ? 58 : 0)
             }
         }
         .onChange(of: store.is3D) { _, is3D in
