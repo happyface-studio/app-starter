@@ -12,6 +12,7 @@ struct CityMapView: View {
     var bottomInset: CGFloat
 
     var body: some View {
+        MapReader { proxy in
         Map(viewport: $viewport) {
             if !UserDefaults.standard.bool(forKey: "hideToy") {
                 ToyBuildings()
@@ -50,10 +51,16 @@ struct CityMapView: View {
             )
         )
         .additionalSafeAreaInsets(.bottom, bottomInset)
+        .onMapLoaded { _ in
+            if LandmarkDump.isEnabled, let map = proxy.map {
+                LandmarkDump.run(map: map) { opts in map.setCamera(to: opts) }
+            }
+        }
         .onMapTapGesture { _ in
             if store.selection != nil { store.selection = nil }
         }
         .ignoresSafeArea()
+        }
         .onChange(of: store.selection) { _, selection in
             guard let selection else { return }
             let coordinate: CLLocationCoordinate2D? =
