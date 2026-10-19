@@ -236,7 +236,8 @@ def facade_texture(path, wall, trim, window, glass, brick=False):
 
 
 def tex_material(img, name):
-    return PBRMaterial(name=name, baseColorTexture=img, metallicFactor=0.0, roughnessFactor=0.92)
+    # double-sided: wall winding follows OSM ring direction, which is not consistent
+    return PBRMaterial(name=name, baseColorTexture=img, metallicFactor=0.0, roughnessFactor=0.92, doubleSided=True)
 
 
 def srgb_to_linear(c):
@@ -246,7 +247,7 @@ def srgb_to_linear(c):
 
 def color_material(rgb, name, rough=0.9):
     # glTF baseColorFactor is linear; the palette is authored in sRGB
-    return PBRMaterial(name=name, baseColorFactor=[*(srgb_to_linear(c) for c in rgb), 1.0], metallicFactor=0.0, roughnessFactor=rough)
+    return PBRMaterial(name=name, baseColorFactor=[*(srgb_to_linear(c) for c in rgb), 1.0], metallicFactor=0.0, roughnessFactor=rough, doubleSided=True)
 
 
 # ---------------------------------------------------------------- palette
