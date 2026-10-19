@@ -578,7 +578,16 @@ def main(src, out):
             continue
         g = geom.copy()
         g.unmerge_vertices()
-        bscene.add_geometry(g, node_name=name, geom_name=name)
+        # Mapbox's model loader only takes 16-bit indices: split into <=65535-vertex chunks
+        per = 65535 // 3
+        for k, start in enumerate(range(0, len(g.faces), per)):
+            end = min(start + per, len(g.faces))
+            # after unmerge_vertices every face owns its 3 vertices, in face order
+            vi = g.faces[start:end].reshape(-1)
+            part = trimesh.Trimesh(g.vertices[vi], np.arange(len(vi)).reshape(-1, 3), process=False)
+            uv = getattr(g.visual, "uv", None)
+            part.visual = trimesh.visual.TextureVisuals(uv=uv[vi] if uv is not None else None, material=g.visual.material)
+            bscene.add_geometry(part, node_name=f"{name}_{k}", geom_name=f"{name}_{k}")
     bscene.export(os.path.join(out, "altstadt_buildings.glb"), include_normals=True)
     json.dump({"origin": {"lat": ORIGIN[0], "lon": ORIGIN[1]}, "clip_m": list(CLIP.bounds)},
               open(os.path.join(out, "altstadt_buildings.json"), "w"))
