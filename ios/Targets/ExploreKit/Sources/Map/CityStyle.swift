@@ -23,7 +23,7 @@ enum CityStyle {
             colorTrunks: StyleColor(UIColor(hex: 0xC98F92)),
             colorWater: StyleColor(UIColor(hex: 0x5AB0EA)),
             densityPointOfInterestLabels: 1.4,
-            show3dBuildings: false,
+            show3dBuildings: UserDefaults.standard.bool(forKey: "dumpLandmarks"),
             show3dFacades: false,
             show3dLandmarks: true,
             show3dTrees: false,

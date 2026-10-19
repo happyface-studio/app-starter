@@ -22,7 +22,7 @@ enum LandmarkDump {
                 write(collected)
                 return
             }
-            setCamera(CameraOptions(center: stops[i], zoom: 16.4, bearing: 0, pitch: 0))
+            setCamera(CameraOptions(center: stops[i], zoom: 16.6, bearing: 0, pitch: 30))
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 let rect = CGRect(x: 0, y: 0, width: 402, height: 874)
                 map.queryRenderedFeatures(with: rect, featureset: .standardBuildings) { result in
