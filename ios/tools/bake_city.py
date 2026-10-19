@@ -184,6 +184,50 @@ def ring_walls(coords, y0, y1, outward=True, u_scale=1.0, v_scale=1.0):
     return m, np.array(uvs)
 
 
+def window_quads(coords, levels, floor_h, frames, panes, ccw=True):
+    """Window frames + panes as geometry along an outer ring (Mapbox clamps texture UVs,
+    so a repeating facade texture is not an option)."""
+    pts = list(coords)
+    if pts[0] != pts[-1]:
+        pts.append(pts[0])
+    for a, b in zip(pts[:-1], pts[1:]):
+        a = np.array(a); b = np.array(b)
+        L = float(np.linalg.norm(b - a))
+        n = int(L // 3.1)
+        if n < 1:
+            continue
+        d = (b - a) / L
+        out = np.array([d[1], -d[0]]) if ccw else np.array([-d[1], d[0]])
+        step = L / n
+        for i in range(n):
+            c = a + d * (step * (i + 0.5))
+            for k in range(int(levels)):
+                y0 = k * floor_h + (0.55 if k else 0.45)
+                h = 1.75 if k else 2.1
+                for bucket, w, hh, off, inset in ((frames, 1.45, h + 0.28, 0.06, 0.0), (panes, 1.08, h - 0.08, 0.1, 0.14)):
+                    p0 = c - d * (w / 2) + out * off
+                    p1 = c + d * (w / 2) + out * off
+                    ya, yb = y0 - inset * 0.0 + (0.14 if bucket is panes else 0.0), y0 + hh
+                    bucket.append([to_yup(p0, ya), to_yup(p1, ya), to_yup(p1, yb), to_yup(p0, yb), to_yup(out, 0)])
+
+
+def quads_to_mesh(quads):
+    if not quads:
+        return None
+    verts, faces = [], []
+    for q in quads:
+        v = np.array(q[:4], dtype=float)
+        nrm = np.array(q[4], dtype=float)
+        i = len(verts)
+        verts.extend(v)
+        f1, f2 = [i, i + 1, i + 2], [i, i + 2, i + 3]
+        fn = np.cross(v[1] - v[0], v[2] - v[0])
+        if np.dot(fn, nrm) < 0:
+            f1, f2 = f1[::-1], f2[::-1]
+        faces += [f1, f2]
+    return trimesh.Trimesh(np.array(verts), np.array(faces), process=False)
+
+
 def miter_inset(coords, d):
     """Offsets a closed CCW ring inward by d using mitred vertices (same vertex count)."""
     pts = np.array(coords[:-1] if coords[0] == coords[-1] else coords)
@@ -264,8 +308,8 @@ PAL = {
     "flower": (214, 54, 60),
     "water": (82, 168, 230),
     "bank": (210, 196, 172),
-    "roof": (78, 92, 178),
-    "roof_top": (128, 138, 200),
+    "roof": (92, 104, 166),
+    "roof_top": (142, 150, 196),
     "roof_flat": (128, 138, 200),
     "cornice": (248, 238, 220),
     "chimney": (204, 120, 84),
@@ -434,6 +478,7 @@ def main(src, out):
 
     wall_parts = {n: ([], []) for n in wall_names}
     roofs, roof_tops, roof_flat, cornices, chimneys, caps = [], [], [], [], [], []
+    win_frames, win_panes = [], []
     labels_out = []
     FLOOR = 3.2
 
@@ -461,6 +506,7 @@ def main(src, out):
             ext = list(poly.exterior.coords)
             if not Polygon(ext).exterior.is_ccw:
                 ext = ext[::-1]
+            window_quads(ext, max(1, int((h - 0.6) // FLOOR)), FLOOR, win_frames, win_panes)
             m, uv = ring_walls(ext, 0.0, h, outward=True, u_scale=1 / FLOOR, v_scale=1 / FLOOR)
             if m is not None:
                 wall_parts[wall][0].append(m)
@@ -559,8 +605,11 @@ def main(src, out):
         if not meshes:
             continue
         m = trimesh.util.concatenate(meshes)
-        m.visual = trimesh.visual.TextureVisuals(uv=np.vstack(uvs), material=tex_material(wall_imgs[name], name))
+        wall_rgb = next(w[1] for w in WALLS if w[0] == name)
+        m.visual = trimesh.visual.TextureVisuals(material=color_material(wall_rgb, name, 0.95))
         scene.add_geometry(m, node_name=name, geom_name=name)
+    add("window_frames", quads_to_mesh(win_frames), color_material((250, 244, 232), "window_frame"))
+    add("window_panes", quads_to_mesh(win_panes), color_material((92, 112, 178), "window_pane", 0.4))
     add("cornice", trimesh.util.concatenate(cornices) if cornices else None, color_material(PAL["cornice"], "cornice"))
     add("roofs", trimesh.util.concatenate(roofs) if roofs else None, color_material(PAL["roof"], "roof", 0.7))
     add("roof_tops", trimesh.util.concatenate(roof_tops) if roof_tops else None, color_material(PAL["roof_top"], "roof_top", 0.8))
@@ -572,18 +621,18 @@ def main(src, out):
 
     # buildings-only model for the Mapbox model layer: anchored at ORIGIN, flat normals
     # (unmerged so every face shades crisp), no ground layers since Mapbox draws those
-    BUILDING_PARTS = ("wall_", "cornice", "roofs", "roof_tops", "chimney")
+    BUILDING_PARTS = ("wall_", "window_", "cornice", "roofs", "roof_tops", "chimney")
     bscene = trimesh.Scene()
     for name, geom in scene.geometry.items():
         if not name.startswith(BUILDING_PARTS):
             continue
         g = geom.copy()
-        g.unmerge_vertices()
+        if not name.startswith("window_"):
+            g.unmerge_vertices()
         # Mapbox's model loader only takes 16-bit indices: split into <=65535-vertex chunks
         per = 65535 // 3
         for k, start in enumerate(range(0, len(g.faces), per)):
             end = min(start + per, len(g.faces))
-            # after unmerge_vertices every face owns its 3 vertices, in face order
             vi = g.faces[start:end].reshape(-1)
             part = trimesh.Trimesh(g.vertices[vi], np.arange(len(vi)).reshape(-1, 3), process=False)
             uv = getattr(g.visual, "uv", None)
