@@ -1,0 +1,323 @@
+<title>Frankfurt Toy City</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4ece2;
+    --ink: #2f3463;
+    --muted: #6d6f8c;
+    --panel: rgba(255, 252, 247, 0.82);
+    --line: rgba(47, 52, 99, 0.10);
+  }
+  /* single daylight look on purpose: the toy-city palette doesn't have a night variant yet */
+  html, body { margin: 0; height: 100%; color-scheme: light; background: var(--bg); overflow: hidden; font-family: "Nunito", ui-rounded, system-ui, sans-serif; color: var(--ink); }
+  #stage { position: fixed; inset: 0; }
+  canvas { display: block; touch-action: none; }
+  #vignette { position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 120% 85% at 50% 52%, transparent 62%, rgba(255,255,255,0.75) 88%, #fff 100%); }
+  .lbl { pointer-events: none; display: flex; align-items: center; gap: 5px; white-space: nowrap; transform: translateY(-50%); }
+  .lbl .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 13px;
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(40,40,90,.28); flex: none; }
+  .lbl .tx { font-weight: 900; font-size: 15px; line-height: 1.05; letter-spacing: -.1px;
+    -webkit-text-stroke: 3.5px #fff; paint-order: stroke fill; text-shadow: 0 1px 2px rgba(255,255,255,.9); }
+  .street { pointer-events: none; font-weight: 900; font-size: 12px; letter-spacing: 1.6px; color: #fff;
+    -webkit-text-stroke: 3px rgba(150,110,120,.55); paint-order: stroke fill; text-transform: uppercase; white-space: nowrap; }
+  .water { pointer-events: none; font-weight: 800; font-style: italic; font-size: 17px; color: #2a6fb3; letter-spacing: 1px;
+    -webkit-text-stroke: 3px rgba(255,255,255,.7); paint-order: stroke fill; }
+  #hud { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #hud button { font: inherit; font-weight: 800; font-size: 14px; color: var(--ink); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 9px 14px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); cursor: pointer; }
+  #hud button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  #hud button:focus-visible { outline: 3px solid #7c78dc; outline-offset: 2px; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; font-weight: 800; color: var(--muted); }
+  #credit { position: fixed; right: max(10px, env(safe-area-inset-right, 0px)); top: calc(8px + env(safe-area-inset-top, 0px)); font-size: 10px; color: var(--muted); opacity: .8; }
+</style>
+<div id="stage"></div>
+<div id="vignette"></div>
+<div id="loading">Building Frankfurt…</div>
+<div id="credit">Map data © OpenStreetMap contributors</div>
+<div id="hud">
+  <button data-view="roemer" aria-pressed="true">Römerberg</button>
+  <button data-view="river">Mainufer</button>
+  <button data-view="dom">Kaiserdom</button>
+  <button data-view="top">Overview</button>
+  <button id="spin">Spin</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
+
+const ORIGIN = [50.1104, 8.6835];
+const M_LAT = 111320, M_LON = 111320 * Math.cos(ORIGIN[0] * Math.PI / 180);
+const ll = (lat, lon) => new THREE.Vector3((lon - ORIGIN[1]) * M_LON, 0, -(lat - ORIGIN[0]) * M_LAT);
+
+const params0 = new URLSearchParams(location.search);
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+stage.appendChild(renderer.domElement);
+
+const labels = new CSS2DRenderer();
+labels.setSize(innerWidth, innerHeight);
+Object.assign(labels.domElement.style, { position: "fixed", inset: "0", pointerEvents: "none" });
+stage.appendChild(labels.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#f7f1e8");
+scene.fog = new THREE.Fog("#fbf7f1", 650, 1250);
+
+const camera = new THREE.PerspectiveCamera(28, innerWidth / innerHeight, 5, 5000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minPolarAngle = 0.25;
+controls.maxPolarAngle = 1.12;
+controls.minDistance = 90;
+controls.maxDistance = 1400;
+controls.screenSpacePanning = false;
+
+// light: soft sky fill + warm low-ish sun that throws long soft shadows (the toy look)
+scene.add(new THREE.HemisphereLight("#fff8ee", "#cdb9a2", 0.95));
+const sun = new THREE.DirectionalLight("#fff0da", 3.1);
+sun.position.set(-260, 420, 240);
+sun.castShadow = true;
+sun.shadow.mapSize.set(params0.has('lowshadow') ? 2048 : 4096, params0.has('lowshadow') ? 2048 : 4096);
+const sc = sun.shadow.camera;
+sc.left = -620; sc.right = 620; sc.top = 620; sc.bottom = -620; sc.near = 50; sc.far = 1400;
+sc.updateProjectionMatrix();
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.25;
+sun.shadow.radius = 4;
+scene.add(sun, sun.target);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const ao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+ao.updateGtaoMaterial({ radius: 2.5, distanceExponent: 1.6, thickness: 2, scale: 1.0 });
+ao.blendIntensity = 0.75;
+if (!params0.has('noao')) composer.addPass(ao);
+composer.addPass(new OutputPass());
+
+function waterTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = "#4fa6e6"; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 70; i++) {
+    const x = Math.random() * 256, y = Math.random() * 256, w = 10 + Math.random() * 28;
+    g.strokeStyle = `rgba(255,255,255,${0.10 + Math.random() * 0.16})`;
+    g.lineWidth = 1.5 + Math.random() * 1.5;
+    g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + w / 2, y - 3, x + w, y); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(0.03, 0.03);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const waterTex = waterTexture();
+
+const loader = new GLTFLoader();
+const load = (u) => new Promise((res, rej) => loader.load(u, res, undefined, rej));
+
+const [city, inst, ...treeModels] = await Promise.all([
+  load("city.gltf.json"),
+  fetch("instances.json").then((r) => r.json()),
+  load("tree_a.gltf.json"), load("tree_b.gltf.json"), load("tree_c.gltf.json"), load("bush_a.gltf.json"),
+]);
+
+city.scene.traverse((o) => {
+  if (!o.isMesh) return;
+  const n = o.name;
+  const src = o.material;
+  // trimesh exports no normals; GLTFLoader then falls back to flat shading, but shadow
+  // receivers need real normals for normalBias, so compute them and keep the faceted look
+  if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+  const m = new THREE.MeshStandardMaterial({ color: src.color, map: src.map, roughness: src.roughness, metalness: 0, side: THREE.DoubleSide, flatShading: true });
+  o.material = m;
+  if (m.map) {
+    m.map.wrapS = m.map.wrapT = THREE.RepeatWrapping;
+    m.map.anisotropy = 8;
+    m.map.magFilter = THREE.LinearFilter;
+    m.map.minFilter = THREE.LinearMipmapLinearFilter;
+  }
+  o.castShadow = !/^(land|water|plaza|roads|road_dashes|paths)/.test(n);
+  o.receiveShadow = true;
+  if (n === "water") {
+    o.material = new THREE.MeshStandardMaterial({ color: "#ffffff", map: params0.has("nomap") ? null : waterTex, roughness: 0.25, metalness: 0 });
+    o.receiveShadow = true;
+    // planar UVs from world xz
+    const g = o.geometry, p = g.attributes.position, uv = new Float32Array(p.count * 2);
+    const nrm = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { uv[i * 2] = p.getX(i); uv[i * 2 + 1] = p.getZ(i); nrm[i * 3 + 1] = 1; }
+    g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    g.setAttribute("normal", new THREE.BufferAttribute(nrm, 3));
+  }
+  if (/^wall_/.test(n)) o.material.side = THREE.DoubleSide;
+});
+scene.add(city.scene);
+
+// puffy trees, instanced per variant and per part (trunk / crown)
+const dummy = new THREE.Object3D();
+const CROWNS = [new THREE.Color("#9db34c"), new THREE.Color("#7f9c3e"), new THREE.Color("#a8bb58"), new THREE.Color("#8aa646")];
+const byVariant = [[], [], [], []];
+for (const t of inst.trees) byVariant[t[2]].push(t);
+treeModels.forEach((gltf, vi) => {
+  const list = byVariant[vi];
+  if (!list.length) return;
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const isCrown = o.material.color.g > o.material.color.r;
+    const geo = o.geometry.clone();
+    geo.deleteAttribute("normal");
+    // weld so the puffs shade smooth and round instead of faceted
+    const welded = BufferGeometryUtils.mergeVertices(geo, 0.01);
+    welded.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({
+      color: isCrown ? CROWNS[vi] : new THREE.Color("#8a5233"), roughness: 1, metalness: 0,
+    });
+    if (isCrown) {
+      // darker underside, sunlit top: the soft "clay" foliage look
+      mat.onBeforeCompile = (sh) => {
+        sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float vH;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvH = position.y;");
+        sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vH;").replace("vec4 diffuseColor = vec4( diffuse, opacity );", "vec4 diffuseColor = vec4( diffuse * mix(0.62, 1.12, smoothstep(1.5, 7.5, vH)), opacity );");
+      };
+    }
+    const im = new THREE.InstancedMesh(welded, mat, list.length);
+    im.castShadow = true; im.receiveShadow = true;
+    list.forEach((t, i) => {
+      const s = t[3] * 1.55;
+      dummy.position.set(t[0], 0.2, t[1]);
+      dummy.rotation.set(0, t[4], 0);
+      dummy.scale.set(s, s * 1.05, s);
+      dummy.updateMatrix();
+      im.setMatrixAt(i, dummy.matrix);
+    });
+    scene.add(im);
+  });
+});
+
+// street lamps
+{
+  const pole = new THREE.CylinderGeometry(0.09, 0.13, 4.4, 6); pole.translate(0, 2.2, 0);
+  const head = new THREE.SphereGeometry(0.32, 10, 8); head.translate(0, 4.55, 0);
+  const pm = new THREE.InstancedMesh(pole, new THREE.MeshStandardMaterial({ color: "#2c2c38", roughness: .6 }), inst.lamps.length);
+  const hm = new THREE.InstancedMesh(head, new THREE.MeshStandardMaterial({ color: "#ffffff", emissive: "#fff6df", emissiveIntensity: .35 }), inst.lamps.length);
+  inst.lamps.forEach(([x, z], i) => { dummy.position.set(x, 0.14, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); pm.setMatrixAt(i, dummy.matrix); hm.setMatrixAt(i, dummy.matrix); });
+  pm.castShadow = true;
+  scene.add(pm, hm);
+}
+
+// labels
+const ICONS = {
+  sight: ["#7c78dc", "★"], food: ["#f08b3c", "🍴"], cafe: ["#b77a4c", "☕"], bar: ["#9b72dc", "🍷"], museum: ["#e5508a", "▣"],
+};
+function poi(name, lat, lon, kind, y = 8) {
+  const [c, glyph] = ICONS[kind];
+  const el = document.createElement("div");
+  el.className = "lbl";
+  el.innerHTML = `<div class="ic" style="background:${c}">${glyph}</div><div class="tx" style="color:${c}">${name.replace(" ", "<br>")}</div>`;
+  const o = new CSS2DObject(el);
+  o.position.copy(ll(lat, lon)).setY(y);
+  o.center.set(0, 0.5);
+  scene.add(o);
+}
+function text(cls, name, lat, lon, rotDeg = 0, y = 1) {
+  const el = document.createElement("div");
+  el.className = cls; el.textContent = name;
+  el.style.transform = `rotate(${rotDeg}deg)`;
+  const o = new CSS2DObject(el);
+  o.position.copy(ll(lat, lon)).setY(y);
+  scene.add(o);
+}
+poi("Römerberg", 50.110473, 8.681563, "sight", 4);
+poi("Kaiserdom", 50.110667, 8.685344, "sight", 30);
+poi("Kleinmarkthalle", 50.112720, 8.683044, "food", 10);
+poi("Bitter & Zart", 50.111497, 8.683685, "cafe", 8);
+poi("Margarete", 50.111419, 8.683338, "food", 8);
+poi("Naiv", 50.110310, 8.687467, "bar", 6);
+poi("Schirn Kunsthalle", 50.110053, 8.683353, "museum", 12);
+poi("Eiserner Steg", 50.108084, 8.682128, "sight", 4);
+poi("Wacker's Kaffee", 50.112067, 8.679220, "cafe", 8);
+text("water", "Main", 50.1072, 8.6870, -8, 0);
+text("street", "Braubachstraße", 50.11135, 8.6836, -11, 0.6);
+text("street", "Mainkai", 50.10855, 8.6838, -10, 0.6);
+text("street", "Berliner Straße", 50.11225, 8.6795, -9, 0.6);
+
+// views
+const VIEWS = {
+  roemer: { target: ll(50.1105, 8.6822), dist: 380, polar: 0.9, az: -0.32 },
+  river:  { target: ll(50.1094, 8.6840), dist: 300, polar: 0.98, az: 0.35 },
+  dom:    { target: ll(50.1107, 8.6852), dist: 420, polar: 0.86, az: -0.9 },
+  top:    { target: ll(50.1102, 8.6835), dist: 900, polar: 0.62, az: -0.25 },
+};
+let anim = null;
+function goTo(key, instant = false) {
+  const v = VIEWS[key];
+  const end = new THREE.Vector3().setFromSphericalCoords(v.dist, v.polar, v.az).add(v.target);
+  if (instant) { controls.target.copy(v.target); camera.position.copy(end); controls.update(); return; }
+  anim = { t: 0, fromP: camera.position.clone(), fromT: controls.target.clone(), toP: end, toT: v.target.clone() };
+  document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === key)));
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => goTo(b.dataset.view)));
+const spinBtn = document.getElementById("spin");
+spinBtn.addEventListener("click", () => {
+  controls.autoRotate = !controls.autoRotate;
+  controls.autoRotateSpeed = 0.6;
+  spinBtn.setAttribute("aria-pressed", String(controls.autoRotate));
+});
+const params = new URLSearchParams(location.search);
+goTo(params.get("view") || "roemer", true);
+
+document.getElementById("loading").remove();
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labels.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight); ao.setSize(innerWidth, innerHeight);
+});
+
+const clock = new THREE.Clock();
+const still = params.has("still");
+let frames = 0;
+renderer.setAnimationLoop(() => {
+  if (still && ++frames > 3) { renderer.setAnimationLoop(null); window.__done = true; return; }
+  const dt = clock.getDelta();
+  if (anim) {
+    anim.t = Math.min(1, anim.t + dt / 1.4);
+    const e = anim.t < .5 ? 4 * anim.t ** 3 : 1 - (-2 * anim.t + 2) ** 3 / 2;
+    camera.position.lerpVectors(anim.fromP, anim.toP, e);
+    controls.target.lerpVectors(anim.fromT, anim.toT, e);
+    if (anim.t >= 1) anim = null;
+  }
+  waterTex.offset.x += dt * 0.004;
+  controls.update();
+  if (params0.has('plain')) renderer.render(scene, camera); else composer.render();
+  labels.render(scene, camera);
+});
+if (params0.has('testbox')) { const tb = new THREE.Mesh(new THREE.BoxGeometry(20, 60, 20), new THREE.MeshStandardMaterial({ color: 'red' })); tb.position.copy(VIEWS[params0.get('view')||'roemer'].target).setY(30); tb.castShadow = true; scene.add(tb); }
+window.__ready = true;
+if (params0.has('sunhelper')) scene.add(new THREE.CameraHelper(sun.shadow.camera));
+window.__sun = sun; window.__renderer = renderer; window.__scene = scene;
+window.__dbg = { shadowMaps: renderer.shadowMap.enabled, casters: (()=>{let c=0;scene.traverse(o=>{if(o.castShadow)c++});return c})() };
+</script>
