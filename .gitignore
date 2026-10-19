@@ -300,3 +300,6 @@ ios/*.xcworkspace
 backend/.env
 backend/node_modules/
 backend/supabase/.branches/
+
+# raw app snapshots for the landmark mask (regenerable)
+ios/tools/landmark_mask/
