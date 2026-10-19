@@ -24,7 +24,7 @@ enum LandmarkDump {
             }
             setCamera(CameraOptions(center: stops[i], zoom: 16.4, bearing: 0, pitch: 0))
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                let rect = CGRect(origin: .zero, size: map.size)
+                let rect = CGRect(x: 0, y: 0, width: 402, height: 874)
                 map.queryRenderedFeatures(with: rect, featureset: .standardBuildings) { result in
                     if case .success(let features) = result {
                         for f in features {
