@@ -133,6 +133,8 @@ func tuistProject() -> Project {
 			]
 		)
 		appDependencies.append(.target(name: targetName))
+		// Mapbox ships dynamic binaries; the app has to embed them too
+		appDependencies.append(.package(product: "MapboxMaps", type: .runtime))
 		projectTargets.append(target)
 	}
 }
