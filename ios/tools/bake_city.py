@@ -482,8 +482,39 @@ def main(src, out):
     labels_out = []
     FLOOR = 3.2
 
+    # Mapbox Standard has hand-made models for the area's landmarks (Römer, Dom, Paulskirche,
+    # Schirn, ...). landmark_mask.py rasterises them; skip OSM buildings they already cover.
+    mask_png = os.path.join(os.path.dirname(os.path.abspath(src)), "landmark_mask.png")
+    lm = None
+    if os.path.exists(mask_png):
+        mj = json.load(open(mask_png.replace(".png", ".json")))
+        lm = (np.asarray(Image.open(mask_png).convert("L")) > 127, mj)
+
+    def landmark_cover(poly):
+        if lm is None:
+            return 0.0
+        m, mj = lm
+        minx, miny, maxx, maxy = poly.bounds
+        xs = np.arange(minx, maxx, mj["res"]) + mj["res"] / 2
+        ys = np.arange(miny, maxy, mj["res"]) + mj["res"] / 2
+        if len(xs) == 0 or len(ys) == 0:
+            return 0.0
+        gx, gy = np.meshgrid(xs, ys)
+        from shapely import contains_xy
+        inside = contains_xy(poly, gx, gy)
+        if not inside.any():
+            return 0.0
+        col = ((gx - mj["x0"]) / mj["res"]).astype(int)
+        row = ((mj["y1"] - gy) / mj["res"]).astype(int)
+        ok = inside & (col >= 0) & (col < m.shape[1]) & (row >= 0) & (row < m.shape[0])
+        return float(m[row[ok], col[ok]].sum()) / max(int(inside.sum()), 1)
+
+    skipped = 0
     for p, t in buildings:
         if not clip.intersects(p) or p.area < 12:
+            continue
+        if landmark_cover(p) > 0.4:
+            skipped += 1
             continue
         p = p.intersection(clip)
         for poly in polys(p):
@@ -693,7 +724,7 @@ def main(src, out):
     lamps = [[round(x, 2), round(-y, 2)] for x, y in lamp_pts if not bfoot.contains(Point(x, y))]
 
     json.dump({"trees": tree_out, "lamps": lamps, "origin": ORIGIN}, open(os.path.join(out, "instances.json"), "w"), separators=(",", ":"))
-    print(STATS)
+    print(STATS, 'landmarks kept from Mapbox:', skipped)
     print("buildings", len(buildings), "trees", len(tree_out), "lamps", len(lamps), "glb", os.path.getsize(os.path.join(out, "city.glb")))
 
 
