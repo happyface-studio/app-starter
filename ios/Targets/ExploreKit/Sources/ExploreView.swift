@@ -10,6 +10,14 @@ public struct ExploreView: View {
     public init() {}
 
     public var body: some View {
+        if let spot = UserDefaults.standard.string(forKey: "mapkit") {
+            MapKitProbe(spot: spot)
+        } else {
+            explore
+        }
+    }
+
+    private var explore: some View {
         Group {
             if hasToken {
                 CityMapView(store: store, viewport: $viewport, bottomInset: 84)
