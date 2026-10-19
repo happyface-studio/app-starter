@@ -27,7 +27,14 @@ struct PuffyTrees: MapStyleContent {
                 .minZoom(13.5)
                 .modelId(Exp(.get) { "m" })
                 .modelType(.common3d)
-                .modelScale(x: 1.15, y: 1.15, z: 1.15)
+                .modelScale(Exp(.interpolate) {
+                    Exp(.linear)
+                    Exp(.zoom)
+                    14
+                    [2.6, 2.6, 2.6]
+                    17
+                    [1.9, 1.9, 1.9]
+                })
                 .modelCastShadows(true)
                 .modelReceiveShadows(true)
                 .modelAmbientOcclusionIntensity(0.9)

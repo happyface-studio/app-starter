@@ -3,7 +3,7 @@ import MapboxMaps
 import SwiftUI
 
 enum Frankfurt {
-    static let center = CLLocationCoordinate2D(latitude: 50.1094, longitude: 8.6806)
+    static let center = CLLocationCoordinate2D(latitude: 50.1112, longitude: 8.6822)
 }
 
 struct CityMapView: View {
@@ -13,6 +13,7 @@ struct CityMapView: View {
 
     var body: some View {
         Map(viewport: $viewport) {
+            SlateRoofs()
             PuffyTrees()
 
             ForEvery(store.visiblePlaces) { place in

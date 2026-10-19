@@ -24,7 +24,9 @@ struct ExploreSheet: View {
                     .padding(.top, 18)
                     .padding(.bottom, 12)
                 ScrollView {
-                    if store.isSearching {
+                    if detent == .peek {
+                        EmptyView()
+                    } else if store.isSearching {
                         SearchResultsView(store: store)
                     } else {
                         HomeContent(store: store)
