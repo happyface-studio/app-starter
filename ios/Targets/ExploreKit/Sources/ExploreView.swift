@@ -35,7 +35,8 @@ public struct ExploreView: View {
     private func applyLaunchArguments() {
         let defaults = UserDefaults.standard
         if let id = defaults.string(forKey: "select") {
-            store.selection = store.places.contains { $0.id == id } ? .place(id) : .event(id)
+            let selection: Selection = store.places.contains { $0.id == id } ? .place(id) : .event(id)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { store.selection = selection }
         }
         if let mood = defaults.string(forKey: "mood").flatMap(MapMood.init(rawValue:)) { store.mood = mood }
         if let f = defaults.string(forKey: "filter") {

@@ -18,7 +18,7 @@ public enum PlaceCategory: String, CaseIterable, Identifiable, Codable, Sendable
 
     var singular: String {
         switch self {
-        case .food: "Restaurant"
+        case .food: "Food"
         case .cafe: "Café"
         case .bar: "Bar"
         case .sight: "Sight"
