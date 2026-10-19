@@ -105,7 +105,7 @@ func tuistProject() -> Project {
 			deploymentTargets: .iOS(osVersion),
 			infoPlist: .extendingDefault(with: defaultModuleInfoPlist),
 			sources: ["Targets/\(targetName)/Sources/**"],
-			resources: ["Targets/\(targetName)/Resources/**"],
+			resources: ["Targets/\(targetName)/Resources/**", baseAppResources],
 			dependencies: [],
 			settings: .settings(base: [
 				"ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS": "YES"
