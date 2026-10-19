@@ -13,7 +13,9 @@ struct CityMapView: View {
 
     var body: some View {
         Map(viewport: $viewport) {
-            ToyBuildings()
+            if !UserDefaults.standard.bool(forKey: "hideToy") {
+                ToyBuildings()
+            }
             PuffyTrees()
 
             ForEvery(store.visiblePlaces) { place in

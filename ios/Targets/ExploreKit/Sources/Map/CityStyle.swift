@@ -25,7 +25,7 @@ enum CityStyle {
             densityPointOfInterestLabels: 1.4,
             show3dBuildings: false,
             show3dFacades: false,
-            show3dLandmarks: false,
+            show3dLandmarks: true,
             show3dTrees: false,
             showLandmarkIconLabels: true,
             showLandmarkIcons: true
