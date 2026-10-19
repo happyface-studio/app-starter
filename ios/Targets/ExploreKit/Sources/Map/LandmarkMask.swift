@@ -50,7 +50,7 @@ enum LandmarkMask {
                 print("LANDMARK_MASK_DONE \(index.count)")
                 return
             }
-            map.setCamera(to: CameraOptions(center: stops[i], zoom: 17.2, bearing: 0, pitch: 0))
+            map.setCamera(to: CameraOptions(center: stops[i], zoom: 16.4, bearing: 0, pitch: 0))
             DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                 guard let image = proxy.captureSnapshot(), let png = image.pngData() else { return step(i + 1) }
                 let name = "tile_\(i).png"
