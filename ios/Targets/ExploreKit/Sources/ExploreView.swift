@@ -26,7 +26,7 @@ public struct ExploreView: View {
                             .padding(.trailing, 14)
                             .padding(.top, 8)
                     }
-                    .sheet(isPresented: .constant(true)) {
+                    .sheet(isPresented: .constant(!LandmarkMask.isEnabled)) {
                         ExploreSheet(store: store, detent: $detent)
                             .presentationDetents([.peek, .half, .large], selection: $detent)
                             .presentationBackgroundInteraction(.enabled(upThrough: .half))

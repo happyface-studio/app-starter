@@ -14,12 +14,14 @@ struct CityMapView: View {
     var body: some View {
         MapReader { proxy in
         Map(viewport: $viewport) {
-            if !UserDefaults.standard.bool(forKey: "hideToy") {
+            if !UserDefaults.standard.bool(forKey: "hideToy") && !LandmarkMask.isEnabled {
                 ToyBuildings()
             }
-            PuffyTrees()
+            if !LandmarkMask.isEnabled {
+                PuffyTrees()
+            }
 
-            ForEvery(store.visiblePlaces) { place in
+            ForEvery(LandmarkMask.isEnabled ? [] : store.visiblePlaces) { place in
                 MapViewAnnotation(coordinate: place.coordinate) {
                     SpotMarker(place: place, isSelected: store.selection == .place(place.id))
                         .onTapGesture { select(.place(place.id)) }
@@ -29,7 +31,7 @@ struct CityMapView: View {
                 .priority(store.selection == .place(place.id) ? 10 : (place.isSaved ? 2 : 1))
             }
 
-            ForEvery(store.visibleEvents) { event in
+            ForEvery(LandmarkMask.isEnabled ? [] : store.visibleEvents) { event in
                 MapViewAnnotation(coordinate: event.coordinate) {
                     EventMarker(event: event, isSelected: store.selection == .event(event.id))
                         .onTapGesture { select(.event(event.id)) }
@@ -43,7 +45,7 @@ struct CityMapView: View {
                 Puck2D(bearing: .heading)
             }
         }
-        .mapStyle(CityStyle.mapStyle(for: store.mood))
+        .mapStyle(LandmarkMask.isEnabled ? LandmarkMask.style : CityStyle.mapStyle(for: store.mood))
         .ornamentOptions(
             OrnamentOptions(
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
@@ -52,7 +54,9 @@ struct CityMapView: View {
         )
         .additionalSafeAreaInsets(.bottom, bottomInset)
         .onMapLoaded { _ in
-            if LandmarkDump.isEnabled, let map = proxy.map {
+            if LandmarkMask.isEnabled {
+                LandmarkMask.run(proxy: proxy)
+            } else if LandmarkDump.isEnabled, let map = proxy.map {
                 LandmarkDump.run(map: map) { opts in map.setCamera(to: opts) }
             }
         }
