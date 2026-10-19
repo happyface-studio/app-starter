@@ -569,6 +569,20 @@ def main(src, out):
 
     scene.export(os.path.join(out, "city.glb"))
 
+    # buildings-only model for the Mapbox model layer: anchored at ORIGIN, flat normals
+    # (unmerged so every face shades crisp), no ground layers since Mapbox draws those
+    BUILDING_PARTS = ("wall_", "cornice", "roofs", "roof_tops", "chimney")
+    bscene = trimesh.Scene()
+    for name, geom in scene.geometry.items():
+        if not name.startswith(BUILDING_PARTS):
+            continue
+        g = geom.copy()
+        g.unmerge_vertices()
+        bscene.add_geometry(g, node_name=name, geom_name=name)
+    bscene.export(os.path.join(out, "altstadt_buildings.glb"), include_normals=True)
+    json.dump({"origin": {"lat": ORIGIN[0], "lon": ORIGIN[1]}, "clip_m": list(CLIP.bounds)},
+              open(os.path.join(out, "altstadt_buildings.json"), "w"))
+
     # ------------------------------------------------------------ instances
     trees = list(tree_pts)
     for l in tree_lines:

@@ -25,7 +25,7 @@ def material(rgb, roughness=0.9):
     )
 
 
-def puff(center, radius, rng, subdiv=2):
+def puff(center, radius, rng, subdiv=3):
     sphere = trimesh.creation.icosphere(subdivisions=subdiv, radius=radius)
     v = sphere.vertices
     n = v / np.linalg.norm(v, axis=1, keepdims=True)
@@ -58,25 +58,38 @@ def trunk(height, radius):
     return t
 
 
+def shade_crown(mesh, green, y0, y1):
+    """Vertex colours: darker, cooler underside to a sunlit top (the clay-foliage look)."""
+    y = mesh.vertices[:, 1]
+    t = np.clip((y - y0) / max(y1 - y0, 1e-3), 0, 1)
+    t = t * t * (3 - 2 * t)
+    lo = np.array(green) * 0.55
+    hi = np.minimum(np.array(green) * 1.15, 1.0)
+    rgb = lo[None, :] * (1 - t[:, None]) + hi[None, :] * t[:, None]
+    srgb = np.clip(rgb ** (1 / 2.2), 0, 1)
+    rgba = np.column_stack([srgb * 255, np.full(len(y), 255)]).astype(np.uint8)
+    mesh.visual = trimesh.visual.ColorVisuals(mesh, vertex_colors=rgba)
+
+
 def tree(name, seed, green, height=4.2, spread=3.0, puffs=5, trunk_h=2.6):
     rng = np.random.default_rng(seed)
     scene = trimesh.Scene()
     c = crown(rng, height, spread, puffs)
-    c.visual = trimesh.visual.TextureVisuals(material=material(green))
+    shade_crown(c, green, height - spread * 0.6, height + spread * 0.8)
     t = trunk(trunk_h, 0.32 * spread / 3.0)
     t.visual = trimesh.visual.TextureVisuals(material=material(TRUNK))
     scene.add_geometry(t, node_name="trunk")
     scene.add_geometry(c, node_name="crown")
-    scene.export(os.path.join(OUT, f"{name}.glb"))
+    scene.export(os.path.join(OUT, f"{name}.glb"), include_normals=True)
 
 
 def bush(name, seed, green):
     rng = np.random.default_rng(seed)
     scene = trimesh.Scene()
     c = crown(rng, 0.9, 1.3, 4)
-    c.visual = trimesh.visual.TextureVisuals(material=material(green))
+    shade_crown(c, green, 0.1, 2.0)
     scene.add_geometry(c, node_name="crown")
-    scene.export(os.path.join(OUT, f"{name}.glb"))
+    scene.export(os.path.join(OUT, f"{name}.glb"), include_normals=True)
 
 
 if __name__ == "__main__":
