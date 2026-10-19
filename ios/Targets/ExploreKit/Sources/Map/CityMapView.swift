@@ -13,8 +13,6 @@ struct CityMapView: View {
 
     var body: some View {
         Map(viewport: $viewport) {
-            FarBuildings()
-            SlateRoofs()
             ToyBuildings()
             PuffyTrees()
 
