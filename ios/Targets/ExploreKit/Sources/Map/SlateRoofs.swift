@@ -16,7 +16,7 @@ struct SlateRoofs: MapStyleContent {
                 Exp(.eq) { Exp(.get) { "extrude" }; "true" }
                 Exp(.gt) { Exp(.get) { "height" }; 3 }
             })
-            .fillExtrusionColor(UIColor(hex: 0x6F78B5))
+            .fillExtrusionColor(UIColor(hex: 0x7884C4))
             .fillExtrusionBase(Exp(.sum) { Exp(.get) { "height" }; 0.15 })
             .fillExtrusionHeight(Exp(.sum) { Exp(.get) { "height" }; 1.1 })
             .fillExtrusionOpacity(Exp(.interpolate) {

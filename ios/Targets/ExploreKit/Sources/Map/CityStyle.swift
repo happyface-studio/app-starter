@@ -13,7 +13,7 @@ enum CityStyle {
             showPedestrianRoads: true,
             show3dObjects: true,
             backgroundPointOfInterestLabels: .circle,
-            colorBuildings: StyleColor(UIColor(hex: 0xFBEFD8)),
+            colorBuildings: StyleColor(UIColor(hex: 0xF0DAB2)),
             colorGreenspace: StyleColor(UIColor(hex: 0x86C45B)),
             colorLand: StyleColor(UIColor(hex: 0xF4E9D6)),
             colorMotorways: StyleColor(UIColor(hex: 0xC98F92)),
