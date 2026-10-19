@@ -8,18 +8,19 @@ let exploreBundle = Bundle(for: BundleToken.self)
 /// Our own stylised trees, instanced on every mapped OSM tree plus a scatter inside parks
 /// (data baked by `ios/tools`). Replaces Mapbox Standard's built-in trees.
 struct PuffyTrees: MapStyleContent {
-    static let variants = ["tree_a", "tree_b", "tree_c", "bush_a"]
+    static func model(_ name: String) -> URL? {
+        exploreBundle.url(forResource: name, withExtension: "glb")
+    }
 
     var body: some MapStyleContent {
         if let url = exploreBundle.url(forResource: "frankfurt_trees", withExtension: "geojson") {
             GeoJSONSource(id: "puffy-trees")
                 .data(.url(url))
 
-            ForEvery(Self.variants, id: \.self) { name in
-                if let model = exploreBundle.url(forResource: name, withExtension: "glb") {
-                    Model(id: name, uri: model)
-                }
-            }
+            Model(id: "tree_a", uri: Self.model("tree_a"))
+            Model(id: "tree_b", uri: Self.model("tree_b"))
+            Model(id: "tree_c", uri: Self.model("tree_c"))
+            Model(id: "bush_a", uri: Self.model("bush_a"))
 
             ModelLayer(id: "puffy-trees", source: "puffy-trees")
                 .slot(.middle)
