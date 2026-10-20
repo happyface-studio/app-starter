@@ -33,6 +33,7 @@ struct CityMapView: View {
             }
             if !LandmarkMask.isEnabled {
                 PuffyTrees()
+                StreetFurniture()
             }
 
             ForEvery(LandmarkMask.isEnabled ? [] : store.visiblePlaces) { place in

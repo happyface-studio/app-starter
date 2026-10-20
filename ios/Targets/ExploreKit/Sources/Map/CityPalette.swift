@@ -37,7 +37,7 @@ struct CityPalette: Identifiable, Hashable {
         buildings: 0xE3C8A8, landmark: 0xEBCDA6,
         glass: Glass(hue: 226...234, saturation: 22...32, lightness: 36...46),
         land: 0xDCC7AD, landuse: 0xDAC5AA, roads: 0xC8988C, trunks: 0xBF8E83,
-        curb: 0xE2D8CC, paving: 0xE0CDB4, water: 0x5A9AC2, green: 0xABBD5A,
+        curb: 0xE2D8CC, paving: 0xEDE1CD, water: 0x5A9AC2, green: 0xABBD5A,
         roof: 0x888EA3, landmarkRoof: 0x505A7A)
 
     static let linen = CityPalette(
