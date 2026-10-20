@@ -14,8 +14,11 @@ struct CityMapView: View {
     var body: some View {
         MapReader { proxy in
         Map(viewport: $viewport) {
-            if !UserDefaults.standard.bool(forKey: "hideToy") && !LandmarkMask.isEnabled {
+            if LandmarkMask.isEnabled {
+            } else if UserDefaults.standard.bool(forKey: "bakedAltstadt") {
                 ToyBuildings()
+            } else {
+                SlateRoofs()
             }
             if !LandmarkMask.isEnabled {
                 PuffyTrees()

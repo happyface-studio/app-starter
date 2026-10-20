@@ -1,18 +1,27 @@
-import MapboxMaps
+@_spi(Experimental) import MapboxMaps
 import UIKit
 
-/// Slate-blue caps on the simple `FarBuildings` extrusions outside the baked Altstadt,
-/// so the rest of the city keeps the cream-walls-blue-roofs read.
+/// Slate-blue caps on top of Standard's 3D buildings, so the whole city reads as cream walls
+/// with blue roofs. Rounded edges make each cap read as a soft, sloped toy roof.
 struct SlateRoofs: MapStyleContent {
     var body: some MapStyleContent {
-        FillExtrusionLayer(id: "slate-roofs", source: "far-buildings")
+        VectorSource(id: "roof-buildings")
+            .url("mapbox://mapbox.mapbox-streets-v8")
+
+        FillExtrusionLayer(id: "slate-roofs", source: "roof-buildings")
             .sourceLayer("building")
             .slot(.middle)
             .minZoom(14.5)
-            .filter(Altstadt.outsideFilter)
+            .filter(Exp(.all) {
+                Exp(.eq) { Exp(.get) { "extrude" }; "true" }
+                Exp(.gt) { Exp(.get) { "height" }; 4 }
+            })
             .fillExtrusionColor(UIColor(hex: 0x6472BE))
-            .fillExtrusionBase(Exp(.sum) { Exp(.get) { "height" }; 0.15 })
-            .fillExtrusionHeight(Exp(.sum) { Exp(.get) { "height" }; 1.1 })
+            .fillExtrusionBase(Exp(.sum) { Exp(.get) { "height" }; -0.4 })
+            .fillExtrusionHeight(Exp(.sum) { Exp(.get) { "height" }; 2.2 })
+            .fillExtrusionEdgeRadius(0.6)
+            .fillExtrusionRoundedRoof(true)
+            .fillExtrusionCastShadows(true)
             .fillExtrusionOpacity(Exp(.interpolate) {
                 Exp(.linear)
                 Exp(.zoom)
