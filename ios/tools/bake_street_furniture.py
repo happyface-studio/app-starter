@@ -166,12 +166,41 @@ def main():
                 emit(x, y, "signal", rot, lit=lit)
     n_signals = len(features)
 
+    # road centre-line segments, for nudging mapped lamps out of the carriageway
+    segs = Grid(40)
+    for w in ways:
+        g = [xy(p["lat"], p["lon"]) for p in w["geometry"]]
+        hw = half_width(w.get("tags", {}))
+        for (ax, ay), (bx, by) in zip(g, g[1:]):
+            segs.add((ax + bx) / 2, (ay + by) / 2, (ax, ay, bx, by, hw))
+
+    def onto_kerb(x, y):
+        best = None
+        for _, _, (ax, ay, bx, by, hw) in segs.near(x, y, 60):
+            dx, dy = bx - ax, by - ay
+            L2 = dx * dx + dy * dy
+            if L2 < 0.01:
+                continue
+            t = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2))
+            px, py = ax + t * dx, ay + t * dy
+            d = math.hypot(x - px, y - py)
+            if d < hw + 0.5 and (best is None or d < best[0]):
+                best = (d, px, py, dx, dy, hw)
+        if best is None:
+            return x, y
+        _, px, py, dx, dy, hw = best
+        L = math.hypot(dx, dy)
+        nx, ny = dy / L, -dx / L
+        if (x - px) * nx + (y - py) * ny < 0:
+            nx, ny = -nx, -ny
+        return px + nx * (hw + KERB), py + ny * (hw + KERB)
+
     # --- lamps mapped in OSM
     lamp_osm = 0
     for e in nodes.values():
         if e.get("tags", {}).get("highway") != "street_lamp":
             continue
-        x, y = xy(e["lat"], e["lon"])
+        x, y = onto_kerb(*xy(e["lat"], e["lon"]))
         if any(True for _ in taken.near(x, y, 4.0)):
             continue
         emit(x, y, "lamp", random.uniform(0, 360))

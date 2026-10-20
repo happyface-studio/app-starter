@@ -1,18 +1,31 @@
 import MapboxMaps
+import UIKit
 
 /// Street lamps and traffic lights (data baked by `ios/tools/bake_street_furniture.py`).
 /// Lantern glass and signal lenses are separate models so only they glow.
 struct StreetFurniture: MapStyleContent {
+    var mood: MapMood
+
     private static let source = "street-furniture"
+
+    /// Mapbox has no bloom, so lamps get a soft warm pool on the ground once it's dark.
+    private var poolOpacity: Double {
+        switch mood {
+        case .day: 0
+        case .dawn: 0.25
+        case .dusk: 0.4
+        case .night: 0.6
+        }
+    }
 
     private static var scale: Exp {
         Exp(.interpolate) {
             Exp(.linear)
             Exp(.zoom)
             15.5
-            [1.9, 1.9, 1.9]
+            [2.2, 2.2, 2.2]
             18
-            [1.4, 1.4, 1.4]
+            [1.6, 1.6, 1.6]
         }
     }
 
@@ -40,6 +53,26 @@ struct StreetFurniture: MapStyleContent {
             Model(id: "signal_body", uri: PuffyTrees.model("signal_body"))
             Model(id: "signal_red", uri: PuffyTrees.model("signal_red"))
             Model(id: "signal_green", uri: PuffyTrees.model("signal_green"))
+
+            CircleLayer(id: "street-lamp-pools", source: Self.source)
+                .slot(.middle)
+                .minZoom(15)
+                .filter(Self.kind("lamp"))
+                .circlePitchAlignment(.map)
+                .circleColor(StyleColor(UIColor(hex: 0xFFD08A)))
+                .circleBlur(1)
+                .circleRadius(Exp(.interpolate) {
+                    Exp(.exponential) { 2 }
+                    Exp(.zoom)
+                    15
+                    3
+                    18
+                    26
+                    20
+                    104
+                })
+                .circleOpacity(poolOpacity)
+                .circleEmissiveStrength(1)
 
             ModelLayer(id: "street-lamps", source: Self.source)
                 .slot(.middle)

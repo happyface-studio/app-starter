@@ -79,16 +79,16 @@ def signal():
     hx = 0.12                                       # housing sits slightly towards the road (+X)
     body = [
         (cyl(0.07, pole_h + 1.1), HOUSING),
-        (box(0.30, 0.34, 1.05, (hx, 0, pole_h + 0.55)), HOUSING),
-        (box(0.04, 0.46, 1.2, (hx - 0.16, 0, pole_h + 0.55)), HOUSING),   # backplate
+        (box(0.30, 0.42, 1.15, (hx, 0, pole_h + 0.55)), HOUSING),
+        (box(0.04, 0.56, 1.3, (hx - 0.16, 0, pole_h + 0.55)), HOUSING),   # backplate
     ]
     # visors over each lens
     for z in (pole_h + 0.9, pole_h + 0.55, pole_h + 0.2):
-        body.append((box(0.18, 0.26, 0.04, (hx + 0.22, 0, z + 0.14)), HOUSING))
+        body.append((box(0.18, 0.34, 0.04, (hx + 0.22, 0, z + 0.17)), HOUSING))
     export("signal_body", body)
 
     def lens(z, rgb, name):
-        d = trimesh.creation.cylinder(radius=0.11, height=0.05, sections=18)
+        d = trimesh.creation.cylinder(radius=0.15, height=0.06, sections=18)
         d.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, (0, 1, 0)))
         d.apply_translation((hx + 0.16, 0, z))
         export(name, [(d, rgb)])

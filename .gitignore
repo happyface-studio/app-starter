@@ -303,3 +303,7 @@ backend/supabase/.branches/
 
 # raw app snapshots for the landmark mask (regenerable)
 ios/tools/landmark_mask/
+
+# OSM extracts (refetch with ios/tools/fetch_osm_streets.sh)
+ios/tools/osm/streets.json
+ios/tools/osm/buildings.json
