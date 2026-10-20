@@ -13,24 +13,25 @@ struct FacadeTile: MapStyleContent {
     }
 
     static func render(_ p: CityPalette) -> UIImage {
-        let size = CGSize(width: 16, height: 16)
+        // Patterns tile in screen points at the current zoom, so the bay is small: ~2.5 x 3.3 pt windows.
+        let size = CGSize(width: 6, height: 6)
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 2
+        format.scale = 3
         return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
             let wall = UIColor(hex: p.buildings)
             wall.setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
 
-            let frame = CGRect(x: 4.5, y: 3.5, width: 7, height: 9)
+            let frame = CGRect(x: 1.7, y: 1.2, width: 2.6, height: 3.4)
             UIColor(white: 1, alpha: 0.45).setFill()
-            ctx.fill(frame.insetBy(dx: -0.8, dy: -0.8))
+            ctx.fill(frame.insetBy(dx: -0.35, dy: -0.35))
             glass(p).setFill()
             ctx.fill(frame)
             UIColor(white: 1, alpha: 0.35).setFill()
-            ctx.fill(CGRect(x: frame.minX, y: frame.midY - 0.3, width: frame.width, height: 0.6))
-            ctx.fill(CGRect(x: frame.midX - 0.3, y: frame.minY, width: 0.6, height: frame.height))
+            ctx.fill(CGRect(x: frame.minX, y: frame.midY - 0.17, width: frame.width, height: 0.34))
+            
             UIColor(white: 0, alpha: 0.10).setFill()
-            ctx.fill(CGRect(x: frame.minX - 0.8, y: frame.maxY + 0.8, width: frame.width + 1.6, height: 0.8))
+            ctx.fill(CGRect(x: frame.minX - 0.35, y: frame.maxY + 0.35, width: frame.width + 0.7, height: 0.35))
         }
     }
 
