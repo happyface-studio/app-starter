@@ -75,37 +75,13 @@ final class Basemap {
         style["layers"] = layers
     }
 
-    /// Buildings without façade data use a plain extrusion layer that shifts our wall colour
-    /// towards orange and has no roof of its own. Use the wall colour as is, and add a thin
-    /// slate cap on top so these blocks get the same roofs as façade buildings.
+    /// Buildings without façade data use a plain extrusion layer with no roof colour and no
+    /// windows, and patterns can't reach into the import. `PlainBuildings` redraws them in the
+    /// root style with windows and slate roofs, so the imported layer is switched off.
     private static func patchPlainBuildings(_ layers: inout [[String: Any]], at i: Int, _ p: CityPalette) {
-        var layer = layers[i]
-        guard var paint = layer["paint"] as? [String: Any],
-              var color = paint["fill-extrusion-color"] as? [Any], color.count > 1 else { return }
-        color[color.count - 1] = ["config", "colorBuildings"]
-        paint["fill-extrusion-color"] = color
-        layer["paint"] = paint
-        layers[i] = layer
-
-        guard let roof = p.roof, let height = paint["fill-extrusion-height"] else { return }
-        var cap = layer
-        cap["id"] = "3d-building-roof"
-        var capPaint = paint
-        capPaint["fill-extrusion-base"] = height
-        capPaint["fill-extrusion-height"] = ["+", height, 0.4] as [Any]
-        capPaint["fill-extrusion-color"] = slate(roof)
-        capPaint.removeValue(forKey: "fill-extrusion-flood-light-intensity")
-        cap["paint"] = capPaint
-        var capLayout = cap["layout"] as? [String: Any] ?? [:]
-        capLayout["fill-extrusion-edge-radius"] = 0
-        cap["layout"] = capLayout
-        layers.insert(cap, at: i + 1)
-
-        // No façade support here, so walls get a tiled window pattern (see `FacadeTile`).
-        // The pattern also lands on the roof, which the slate cap above covers.
-        paint["fill-extrusion-pattern"] = FacadeTile.imageID(p)
-        layer["paint"] = paint
-        layers[i] = layer
+        var layout = layers[i]["layout"] as? [String: Any] ?? [:]
+        layout["visibility"] = "none"
+        layers[i]["layout"] = layout
     }
 
     private static let footways = ["path", "pedestrian", "steps"]
