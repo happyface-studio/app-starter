@@ -17,7 +17,7 @@ final class Basemap {
     private(set) var isResolved = false
 
     private let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("standard-patched-v1.json")
+        .appendingPathComponent("standard-patched-v2.json")
 
     private init() {
         if let cached = try? String(contentsOf: cacheURL, encoding: .utf8) {
@@ -71,7 +71,7 @@ final class Basemap {
     private static let glass: [Any] = [
         "match", ["config", "lightPreset"],
         "night", ["hsl", ["random", 0, 90, ["id"]], ["random", 20, 100, ["id"]], 87],
-        ["hsl", ["random", 200, 215, ["id"]], 100, ["random", 70, 80, ["id"]]],
+        ["hsl", ["random", 202, 214, ["id"]], ["random", 42, 55, ["id"]], ["random", 72, 79, ["id"]]],
     ]
 
     private static func patchLandmarks(_ layer: inout [String: Any]) {
@@ -93,6 +93,8 @@ final class Basemap {
             default: break
             }
         }
+        // Most landmark meshes carry no `part` tag and land in the white catch-all branch.
+        color[color.count - 1] = wall
         paint["model-color"] = color
         layer["paint"] = paint
     }
@@ -110,11 +112,11 @@ final class Basemap {
             paint["building-color"] = color
         }
 
-        // Landmark glass glows at ~0.4 by day; Standard's façades use 0, which reads as flat paint.
+        // A little daytime glow so façade glass reads lighter than the wall, like the landmarks' glass.
         if var emissive = paint["building-emissive-strength"] as? [Any],
            var parts = emissive.last as? [Any],
            let w = parts.firstIndex(where: { $0 as? String == "window" }), w + 1 < parts.count {
-            parts[w + 1] = ["match", ["config", "lightPreset"], "night", ["random", 0, 0.2, ["id"]], 0.4] as [Any]
+            parts[w + 1] = ["match", ["config", "lightPreset"], "night", ["random", 0, 0.2, ["id"]], ["random", 0.1, 0.25, ["id"]]] as [Any]
             emissive[emissive.count - 1] = parts
             paint["building-emissive-strength"] = emissive
         }
