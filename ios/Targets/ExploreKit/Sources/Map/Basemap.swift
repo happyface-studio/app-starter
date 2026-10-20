@@ -118,7 +118,7 @@ final class Basemap {
         let c: [Any] = ["to-hsla", hex.hexString]
         return [
             "hsl", ["at", 0, c], ["at", 1, c],
-            ["random", ["max", 0, ["-", ["at", 2, c], 5]], ["min", 100, ["+", ["at", 2, c], 3]], ["id"]],
+            ["random", ["max", 0, ["-", ["at", 2, c], 2]], ["min", 100, ["+", ["at", 2, c], 2]], ["id"]],
         ]
     }
 
@@ -131,7 +131,7 @@ final class Basemap {
               var color = paint["model-color"] as? [Any] else { return }
         let tint = p.landmark.hexString
         let hsla: (Int) -> [Any] = { ["at", $0, ["to-hsla", tint]] }
-        let roof: [Any] = p.roof.map(slate) ?? [
+        let roof: [Any] = (p.landmarkRoof ?? p.roof).map(slate) ?? [
             "let", "h", hsla(0), "s", hsla(1), "l", hsla(2),
             ["hsl", ["max", 0, ["-", ["var", "h"], 12]], ["var", "s"], ["max", 0, ["-", ["var", "l"], 3]]],
         ]
@@ -151,6 +151,8 @@ final class Basemap {
 
         if var emissive = paint["model-emissive-strength"] as? [Any], emissive.count > 1 {
             emissive[emissive.count - 1] = ["interpolate", ["linear"], ["measure-light", "brightness"], 0.3, 0, 0.5, 0.15] as [Any]
+            // Glow washes slate roofs out to grey; walls keep it so they match façade brightness.
+            if p.roof != nil { emissive.insert(contentsOf: ["roof", 0] as [Any], at: emissive.count - 1) }
             paint["model-emissive-strength"] = emissive
         }
         layer["paint"] = paint
