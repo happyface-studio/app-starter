@@ -9,7 +9,26 @@ struct CityBuildings: MapStyleContent {
     static let source = "city-buildings"
     static let roofDepth = 2.4
 
+    /// One floor-high window tile for the walls (fill-extrusion-pattern needs power-of-two sizes).
+    static let windowTile: UIImage = {
+        let size = CGSize(width: 32, height: 32)
+        let fmt = UIGraphicsImageRendererFormat()
+        fmt.scale = 2
+        return UIGraphicsImageRenderer(size: size, format: fmt).image { ctx in
+            UIColor(hex: 0xF0DAB0).setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            UIColor(hex: 0xFBF4E6).setFill()
+            ctx.fill(CGRect(x: 9, y: 6, width: 14, height: 20))
+            UIColor(hex: 0x6074B8).setFill()
+            ctx.fill(CGRect(x: 11, y: 8, width: 10, height: 16))
+            UIColor(hex: 0xFBF4E6).setFill()
+            ctx.fill(CGRect(x: 15.25, y: 8, width: 1.5, height: 16))
+        }
+    }()
+
     var body: some MapStyleContent {
+        StyleImage(id: "toy-window", image: Self.windowTile)
+
         VectorSource(id: Self.source)
             .url("mapbox://mapbox.mapbox-streets-v8")
 
@@ -25,6 +44,7 @@ struct CityBuildings: MapStyleContent {
                 2; UIColor(hex: 0xF5E8D2)
                 UIColor(hex: 0xEED3A8)
             })
+            .fillExtrusionPattern("toy-window")
             .fillExtrusionBase(Exp(.get) { "min_height" })
             .fillExtrusionHeight(Exp(.max) {
                 Exp(.sum) { Exp(.get) { "min_height" }; 1 }
@@ -41,7 +61,7 @@ struct CityBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(13)
             .filter(Exp(.eq) { Exp(.get) { "extrude" }; "true" })
-            .fillExtrusionColor(UIColor(hex: 0x6876BE))
+            .fillExtrusionColor(UIColor(hex: 0x7380C2))
             .fillExtrusionBase(Exp(.max) {
                 Exp(.sum) { Exp(.get) { "min_height" }; 1 }
                 Exp(.sum) { Exp(.get) { "height" }; -Self.roofDepth }
