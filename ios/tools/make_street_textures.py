@@ -61,8 +61,8 @@ def slabs():
                 x0 = ox + c * sw + shift
                 y0 = oy + r * sh
                 d.rectangle((x0, y0, x0 + sw, y0 + sh), fill=(*LIGHT, random.randint(0, 22)))
-                d.line((x0, y0, x0 + sw, y0), fill=(*JOINT, 46), width=2)
-                d.line((x0, y0, x0, y0 + sh), fill=(*JOINT, 46), width=2)
+                d.line((x0, y0, x0 + sw, y0), fill=(*JOINT, 85), width=2)
+                d.line((x0, y0, x0, y0 + sh), fill=(*JOINT, 85), width=2)
 
     tiled((w, h), draw).filter(ImageFilter.GaussianBlur(0.5)).save(os.path.join(OUT, "tex_slabs@2x.png"))
 
@@ -71,13 +71,13 @@ def grain():
     w, h = 128, 64
 
     def draw(d, ox, oy):
-        for _ in range(900):
+        for _ in range(1300):
             x, y = ox + random.random() * w, oy + random.random() * h
             dark = random.random() < 0.6
-            d.point((x, y), fill=(*(JOINT if dark else LIGHT), random.randint(14, 34)))
+            d.point((x, y), fill=(*(JOINT if dark else LIGHT), random.randint(30, 70)))
         for _ in range(14):
             x, y, r = ox + random.random() * w, oy + random.random() * h, random.uniform(0.8, 1.8)
-            d.ellipse((x - r, y - r, x + r, y + r), fill=(*JOINT, 28))
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(*JOINT, 55))
 
     tiled((w, h), draw).save(os.path.join(OUT, "tex_grain@2x.png"))
 
