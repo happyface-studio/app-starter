@@ -3,7 +3,7 @@ import MapboxMaps
 import Observation
 
 /// Mapbox Standard, patched so landmark models and ordinary buildings read as one city:
-/// landmark walls/roofs follow `colorBuildings` (Standard hard-codes them white/peach), and
+/// landmark walls/roofs get our cream (Standard hard-codes them white/peach), and
 /// ordinary façade windows get the landmarks' blue glass instead of desaturated wall colour.
 ///
 /// Standard's layer paint can't be changed through the import API, so we fetch the style JSON,
@@ -17,7 +17,7 @@ final class Basemap {
     private(set) var isResolved = false
 
     private let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("standard-patched-v2.json")
+        .appendingPathComponent("standard-patched-v3.json")
 
     private init() {
         if let cached = try? String(contentsOf: cacheURL, encoding: .utf8) {
@@ -63,9 +63,12 @@ final class Basemap {
         style["layers"] = layers
     }
 
-    private static let buildings: [Any] = ["config", "colorBuildings"]
+    /// Model layers don't resolve `config` expressions for these batched landmark models
+    /// (they fall back to Standard's default), so landmarks get a literal tint. Models are lit
+    /// darker than façades, hence warmer than the `colorBuildings` set in `CityStyle`.
+    private static let landmarkWall = "#FCE5C0"
 
-    private static func hsla(_ i: Int) -> [Any] { ["at", i, ["to-hsla", buildings]] }
+    private static func hsla(_ i: Int) -> [Any] { ["at", i, ["to-hsla", landmarkWall]] }
 
     /// Same window glass the landmark models use by day; warm lit windows at night.
     private static let glass: [Any] = [
@@ -84,7 +87,7 @@ final class Basemap {
         let wall: [Any] = [
             "interpolate", ["linear"], ["measure-light", "brightness"],
             0, ["hsl", 29, 93, 77],
-            0.2, buildings,
+            0.2, landmarkWall,
         ]
         for i in color.indices {
             switch color[i] as? String {
@@ -96,6 +99,11 @@ final class Basemap {
         // Most landmark meshes carry no `part` tag and land in the white catch-all branch.
         color[color.count - 1] = wall
         paint["model-color"] = color
+
+        if var emissive = paint["model-emissive-strength"] as? [Any], emissive.count > 1 {
+            emissive[emissive.count - 1] = ["interpolate", ["linear"], ["measure-light", "brightness"], 0.3, 0, 0.5, 0.15] as [Any]
+            paint["model-emissive-strength"] = emissive
+        }
         layer["paint"] = paint
     }
 
