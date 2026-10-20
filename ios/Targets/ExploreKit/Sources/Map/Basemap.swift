@@ -69,7 +69,34 @@ final class Basemap {
             default: patchStreets(&layers[i], id: id, palette)
             }
         }
+        if let i = layers.firstIndex(where: { $0["id"] as? String == "3d-building" }) {
+            patchPlainBuildings(&layers, at: i, palette)
+        }
         style["layers"] = layers
+    }
+
+    /// Buildings without façade data use a plain extrusion layer that shifts our wall colour
+    /// towards orange and has no roof of its own. Use the wall colour as is, and add a thin
+    /// slate cap on top so these blocks get the same roofs as façade buildings.
+    private static func patchPlainBuildings(_ layers: inout [[String: Any]], at i: Int, _ p: CityPalette) {
+        var layer = layers[i]
+        guard var paint = layer["paint"] as? [String: Any],
+              var color = paint["fill-extrusion-color"] as? [Any], color.count > 1 else { return }
+        color[color.count - 1] = ["config", "colorBuildings"]
+        paint["fill-extrusion-color"] = color
+        layer["paint"] = paint
+        layers[i] = layer
+
+        guard let roof = p.roof, let height = paint["fill-extrusion-height"] else { return }
+        var cap = layer
+        cap["id"] = "3d-building-roof"
+        var capPaint = paint
+        capPaint["fill-extrusion-base"] = height
+        capPaint["fill-extrusion-height"] = ["+", height, 0.4] as [Any]
+        capPaint["fill-extrusion-color"] = slate(roof)
+        capPaint.removeValue(forKey: "fill-extrusion-flood-light-intensity")
+        cap["paint"] = capPaint
+        layers.insert(cap, at: i + 1)
     }
 
     private static let footways = ["path", "pedestrian", "steps"]

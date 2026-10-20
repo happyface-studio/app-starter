@@ -34,11 +34,11 @@ struct CityPalette: Identifiable, Hashable {
     /// Matched to the London toy-map reference: sand walls, slate roofs, rose roads, olive parks.
     static let mayfair = CityPalette(
         id: "mayfair", title: "Mayfair",
-        buildings: 0xEBD6B6, landmark: 0xF0D6AE,
+        buildings: 0xE3C8A8, landmark: 0xEBCDA6,
         glass: Glass(hue: 226...234, saturation: 22...32, lightness: 36...46),
-        land: 0xE4D4BD, landuse: 0xE1D0B8, roads: 0xCF9C92, trunks: 0xC68E86,
-        curb: 0xEADCC6, paving: 0xE4D2B8, water: 0x5A9AC2, green: 0xA0B65A,
-        roof: 0x858DB8, landmarkRoof: 0x4D58A0)
+        land: 0xDCC7AD, landuse: 0xDAC5AA, roads: 0xC8988C, trunks: 0xBF8E83,
+        curb: 0xE2D8CC, paving: 0xE0CDB4, water: 0x5A9AC2, green: 0xABBD5A,
+        roof: 0x888EA3, landmarkRoof: 0x505A7A)
 
     static let linen = CityPalette(
         id: "linen", title: "Linen",
