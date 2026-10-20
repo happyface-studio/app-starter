@@ -19,7 +19,7 @@ struct CityBuildings: MapStyleContent {
             .minZoom(13)
             .filter(Exp(.eq) { Exp(.get) { "extrude" }; "true" })
             .fillExtrusionColor(Exp(.match) {
-                Exp(.modulo) { Exp(.id); 4 }
+                Exp(.mod) { Exp(.id); 4 }
                 0; UIColor(hex: 0xF2DDB4)
                 1; UIColor(hex: 0xE9C99A)
                 2; UIColor(hex: 0xF5E8D2)
