@@ -96,6 +96,9 @@ final class Basemap {
         capPaint["fill-extrusion-color"] = slate(roof)
         capPaint.removeValue(forKey: "fill-extrusion-flood-light-intensity")
         cap["paint"] = capPaint
+        var capLayout = cap["layout"] as? [String: Any] ?? [:]
+        capLayout["fill-extrusion-edge-radius"] = 0
+        cap["layout"] = capLayout
         layers.insert(cap, at: i + 1)
     }
 
