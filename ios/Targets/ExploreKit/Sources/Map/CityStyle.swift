@@ -4,15 +4,15 @@ import UIKit
 enum CityStyle {
 
     /// Uses the patched Standard (see `Basemap`) when available, plain Standard otherwise.
-    static func mapStyle(for mood: MapMood, basemap: String?) -> MapStyle {
+    static func mapStyle(for mood: MapMood, palette: CityPalette, basemap: String?) -> MapStyle {
         if let basemap {
-            MapStyle(json: basemap, configuration: configuration(mood))
+            MapStyle(json: basemap, configuration: configuration(mood, palette))
         } else {
-            MapStyle(uri: .standard, configuration: configuration(mood))
+            MapStyle(uri: .standard, configuration: configuration(mood, palette))
         }
     }
 
-    private static func configuration(_ mood: MapMood) -> JSONObject {
+    private static func configuration(_ mood: MapMood, _ p: CityPalette) -> JSONObject {
         let ownBuildings = UserDefaults.standard.bool(forKey: "toyExtrusions") || LookTest.pastelBlocks
         return [
             "theme": "default",
@@ -23,15 +23,15 @@ enum CityStyle {
             "showPedestrianRoads": true,
             "show3dObjects": true,
             "backgroundPointOfInterestLabels": "circle",
-            "colorBuildings": "#F7E9CF",
-            "colorGreenspace": "#8CCB5E",
-            "colorLand": "#F2EADF",
-            "colorMotorways": "#C98F92",
+            "colorBuildings": .string(p.buildings.hexString),
+            "colorGreenspace": .string(p.green.hexString),
+            "colorLand": .string(p.land.hexString),
+            "colorMotorways": .string(p.trunks.hexString),
             "colorPlaceLabels": "#3B3F63",
             "colorRoadLabels": "#6E6F86",
-            "colorRoads": "#DDB3B5",
-            "colorTrunks": "#C98F92",
-            "colorWater": "#62B4EC",
+            "colorRoads": .string(p.roads.hexString),
+            "colorTrunks": .string(p.trunks.hexString),
+            "colorWater": .string(p.water.hexString),
             "densityPointOfInterestLabels": 1.4,
             "show3dBuildings": .boolean(!ownBuildings),
             "show3dFacades": .boolean(!ownBuildings),

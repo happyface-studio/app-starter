@@ -61,7 +61,8 @@ struct CityMapView: View {
         }
         .mapStyle(LandmarkMask.isEnabled ? LandmarkMask.style : CityStyle.mapStyle(
             for: store.mood,
-            basemap: UserDefaults.standard.bool(forKey: "plainStandard") ? nil : basemap.json))
+            palette: store.palette,
+            basemap: UserDefaults.standard.bool(forKey: "plainStandard") ? nil : basemap.json(for: store.palette)))
         .ornamentOptions(
             OrnamentOptions(
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),

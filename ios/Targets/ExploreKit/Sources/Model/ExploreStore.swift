@@ -65,6 +65,9 @@ final class ExploreStore {
     var filter: Filter?
     var selection: Selection?
     var mood: MapMood = .day
+    var palette = CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .cream {
+        didSet { UserDefaults.standard.set(palette.id, forKey: "palette") }
+    }
     var is3D = true
     var showsUserLocation = false
     var plannedEventIDs: Set<String> = []

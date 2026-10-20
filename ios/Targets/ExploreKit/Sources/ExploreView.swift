@@ -117,6 +117,11 @@ struct MapControls: View {
                         Label(mood.title, systemImage: mood.symbol).tag(mood)
                     }
                 }
+                Picker("Style", selection: $store.palette) {
+                    ForEach(CityPalette.all) { palette in
+                        Text(palette.title).tag(palette)
+                    }
+                }
             } label: {
                 controlIcon(store.mood.symbol)
             }
