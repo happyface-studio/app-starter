@@ -100,6 +100,12 @@ final class Basemap {
         capLayout["fill-extrusion-edge-radius"] = 0
         cap["layout"] = capLayout
         layers.insert(cap, at: i + 1)
+
+        // No façade support here, so walls get a tiled window pattern (see `FacadeTile`).
+        // The pattern also lands on the roof, which the slate cap above covers.
+        paint["fill-extrusion-pattern"] = FacadeTile.imageID(p)
+        layer["paint"] = paint
+        layers[i] = layer
     }
 
     private static let footways = ["path", "pedestrian", "steps"]
