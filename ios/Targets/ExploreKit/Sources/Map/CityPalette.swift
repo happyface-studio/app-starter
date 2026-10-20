@@ -28,13 +28,13 @@ struct CityPalette: Identifiable, Hashable {
 
     static let sorbet = CityPalette(
         id: "sorbet", title: "Sorbet",
-        buildings: 0xF9DCCB, landmark: 0xFDD8C0,
+        buildings: 0xF9DCCB, landmark: 0xFCC6AE,
         glass: Glass(hue: 166...180, saturation: 34...44, lightness: 70...78),
         land: 0xF7EDE6, roads: 0xF0BFC4, trunks: 0xE39AA6, water: 0x74C6E6, green: 0x9ED37F)
 
     static let butter = CityPalette(
         id: "butter", title: "Butter",
-        buildings: 0xF8E4A8, landmark: 0xFCE29C,
+        buildings: 0xF8E4A8, landmark: 0xFAD47A,
         glass: Glass(hue: 196...208, saturation: 50...60, lightness: 70...78),
         land: 0xF4EBD3, roads: 0xE8C49D, trunks: 0xD9A274, water: 0x4FAEE6, green: 0x7EC25B)
 
