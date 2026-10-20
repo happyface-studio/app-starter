@@ -18,7 +18,7 @@ struct CityMapView: View {
             } else if UserDefaults.standard.bool(forKey: "bakedAltstadt") {
                 ToyBuildings()
             } else {
-                SlateRoofs()
+                CityBuildings()
             }
             if !LandmarkMask.isEnabled {
                 PuffyTrees()
