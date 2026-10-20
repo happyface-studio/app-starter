@@ -3,7 +3,7 @@
   python3 ios/tools/make_street_textures.py
 
 Drawn at @2x; the map tints nothing, it lays these over the palette colours.
-  tex_cobbles  rounded setts in offset rows (pedestrian zones, plazas)
+  tex_cobbles  small rounded setts in offset rows, @3x (pedestrian zones, plazas)
   tex_slabs    running-bond paving slabs (footpaths, sidewalks)
   tex_grain    faint asphalt grain with a few pebbles (roads)
 """
@@ -33,22 +33,23 @@ def tiled(size, draw_fn):
 
 
 def cobbles():
-    w, h, sw, sh = 128, 128, 16, 16
-    rows = h // sh + 1
+    # @3x tile; 12 px setts = 4 pt on screen
+    w, h, sw, sh = 192, 192, 12, 12
+    rows = h // sh
 
     def draw(d, ox, oy):
         for r in range(rows):
             shift = (sw // 2) if r % 2 else 0
             for c in range(w // sw + 1):
-                x0 = ox + c * sw + shift + random.randint(-1, 1)
-                y0 = oy + r * (h / (h // sh)) + random.randint(-1, 0)
-                box = (x0 + 1.5, y0 + 1.5, x0 + sw - 1.5, y0 + sh - 1.5)
-                d.rounded_rectangle((box[0] - 1.5, box[1] - 1.5, box[2] + 1.5, box[3] + 1.5), 5, fill=(*JOINT, 50))
-                d.rounded_rectangle(box, 4, fill=(*LIGHT, random.randint(6, 26)))
-                d.rounded_rectangle((box[0] + 2, box[1] + 1.5, box[2] - 4, box[1] + 4), 2, fill=(*LIGHT, 34))
+                x0 = ox + c * sw + shift + random.choice((-0.5, 0, 0.5))
+                y0 = oy + r * sh
+                box = (x0 + 1.2, y0 + 1.2, x0 + sw - 1.2, y0 + sh - 1.2)
+                d.rounded_rectangle((box[0] - 1.2, box[1] - 1.2, box[2] + 1.2, box[3] + 1.2), 4, fill=(*JOINT, 46))
+                d.rounded_rectangle(box, 3, fill=(*LIGHT, random.randint(6, 24)))
+                d.rounded_rectangle((box[0] + 1.5, box[1] + 1, box[2] - 3, box[1] + 3), 1.5, fill=(*LIGHT, 30))
 
-    img = tiled((w, h), draw).filter(ImageFilter.GaussianBlur(0.6))
-    img.save(os.path.join(OUT, "tex_cobbles@2x.png"))
+    img = tiled((w, h), draw).filter(ImageFilter.GaussianBlur(0.5))
+    img.save(os.path.join(OUT, "tex_cobbles@3x.png"))
 
 
 def slabs():
