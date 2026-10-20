@@ -38,7 +38,7 @@ struct CityPalette: Identifiable, Hashable {
         glass: Glass(hue: 226...234, saturation: 22...32, lightness: 36...46),
         land: 0xE4D4BD, landuse: 0xE1D0B8, roads: 0xCF9C92, trunks: 0xC68E86,
         curb: 0xEADCC6, paving: 0xE4D2B8, water: 0x5A9AC2, green: 0xA0B65A,
-        roof: 0x6A73A3, landmarkRoof: 0x5A64A0)
+        roof: 0x6A73A3, landmarkRoof: 0x1E2A80)
 
     static let linen = CityPalette(
         id: "linen", title: "Linen",
