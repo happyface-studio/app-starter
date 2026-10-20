@@ -32,6 +32,7 @@ struct CityMapView: View {
                 PastelBlocks()
             }
             if !LandmarkMask.isEnabled {
+                StreetTextures()
                 PuffyTrees()
                 StreetFurniture(mood: store.mood)
             }

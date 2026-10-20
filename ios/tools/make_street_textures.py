@@ -1,0 +1,90 @@
+"""Seamless overlay textures for streets (alpha only: dark joints, light highlights).
+
+  python3 ios/tools/make_street_textures.py
+
+Drawn at @2x; the map tints nothing, it lays these over the palette colours.
+  tex_cobbles  rounded setts in offset rows (pedestrian zones, plazas)
+  tex_slabs    running-bond paving slabs (footpaths, sidewalks)
+  tex_grain    faint asphalt grain with a few pebbles (roads)
+"""
+
+import os
+import random
+
+from PIL import Image, ImageDraw, ImageFilter
+
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Targets", "ExploreKit", "Resources", "Textures")
+JOINT = (92, 62, 48)
+LIGHT = (255, 252, 244)
+
+random.seed(11)
+
+
+def tiled(size, draw_fn):
+    """Draw on a 3x3 canvas and crop the centre so shapes crossing the edge wrap seamlessly."""
+    w, h = size
+    big = Image.new("RGBA", (w * 3, h * 3), (0, 0, 0, 0))
+    d = ImageDraw.Draw(big)
+    for ox in (0, w, 2 * w):
+        for oy in (0, h, 2 * h):
+            random.seed(11)
+            draw_fn(d, ox, oy)
+    return big.crop((w, h, 2 * w, 2 * h))
+
+
+def cobbles():
+    w, h, sw, sh = 128, 128, 16, 16
+    rows = h // sh + 1
+
+    def draw(d, ox, oy):
+        for r in range(rows):
+            shift = (sw // 2) if r % 2 else 0
+            for c in range(w // sw + 1):
+                x0 = ox + c * sw + shift + random.randint(-1, 1)
+                y0 = oy + r * (h / (h // sh)) + random.randint(-1, 0)
+                box = (x0 + 1.5, y0 + 1.5, x0 + sw - 1.5, y0 + sh - 1.5)
+                d.rounded_rectangle((box[0] - 1.5, box[1] - 1.5, box[2] + 1.5, box[3] + 1.5), 5, fill=(*JOINT, 50))
+                d.rounded_rectangle(box, 4, fill=(*LIGHT, random.randint(6, 26)))
+                d.rounded_rectangle((box[0] + 2, box[1] + 1.5, box[2] - 4, box[1] + 4), 2, fill=(*LIGHT, 34))
+
+    img = tiled((w, h), draw).filter(ImageFilter.GaussianBlur(0.6))
+    img.save(os.path.join(OUT, "tex_cobbles@2x.png"))
+
+
+def slabs():
+    w, h, sw, sh = 128, 64, 64, 32
+
+    def draw(d, ox, oy):
+        for r in range(h // sh):
+            shift = (sw // 2) if r % 2 else 0
+            for c in range(w // sw + 1):
+                x0 = ox + c * sw + shift
+                y0 = oy + r * sh
+                d.rectangle((x0, y0, x0 + sw, y0 + sh), fill=(*LIGHT, random.randint(0, 22)))
+                d.line((x0, y0, x0 + sw, y0), fill=(*JOINT, 46), width=2)
+                d.line((x0, y0, x0, y0 + sh), fill=(*JOINT, 46), width=2)
+
+    tiled((w, h), draw).filter(ImageFilter.GaussianBlur(0.5)).save(os.path.join(OUT, "tex_slabs@2x.png"))
+
+
+def grain():
+    w, h = 128, 64
+
+    def draw(d, ox, oy):
+        for _ in range(900):
+            x, y = ox + random.random() * w, oy + random.random() * h
+            dark = random.random() < 0.6
+            d.point((x, y), fill=(*(JOINT if dark else LIGHT), random.randint(14, 34)))
+        for _ in range(14):
+            x, y, r = ox + random.random() * w, oy + random.random() * h, random.uniform(0.8, 1.8)
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(*JOINT, 28))
+
+    tiled((w, h), draw).save(os.path.join(OUT, "tex_grain@2x.png"))
+
+
+if __name__ == "__main__":
+    os.makedirs(OUT, exist_ok=True)
+    cobbles()
+    slabs()
+    grain()
+    print("ok")
