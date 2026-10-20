@@ -62,13 +62,45 @@ final class Basemap {
     static func patch(_ style: inout [String: Any], palette: CityPalette) {
         guard var layers = style["layers"] as? [[String: Any]] else { return }
         for i in layers.indices {
-            switch layers[i]["id"] as? String {
+            guard let id = layers[i]["id"] as? String else { continue }
+            switch id {
             case "building-models": patchLandmarks(&layers[i], palette)
             case "procedural-buildings": patchFacades(&layers[i], palette)
-            default: break
+            default: patchStreets(&layers[i], id: id, palette)
             }
         }
         style["layers"] = layers
+    }
+
+    private static let footways = ["path", "pedestrian", "steps"]
+
+    /// Standard draws footpaths and plazas in fixed lilac-grey with grey outlines (a wireframe
+    /// look over the Altstadt) and tram rails with sleepers. Fold them into the palette instead.
+    private static func patchStreets(_ layer: inout [String: Any], id: String, _ p: CityPalette) {
+        let isFootway = footways.contains { id.hasSuffix("-\($0)") || id.hasSuffix("-\($0)-case") }
+            && ["road-", "bridge-", "tunnel-"].contains { id.hasPrefix($0) }
+
+        if (isFootway && id.hasSuffix("-case")) || id.hasSuffix("rail-tracks") {
+            var layout = layer["layout"] as? [String: Any] ?? [:]
+            layout["visibility"] = "none"
+            layer["layout"] = layout
+            return
+        }
+
+        var paint = layer["paint"] as? [String: Any] ?? [:]
+        if isFootway {
+            paint["line-color"] = p.paving.hexString
+        } else if id == "road-pedestrian-polygon-fill" {
+            paint["fill-color"] = p.paving.hexString
+        } else if id.hasSuffix("rail") {
+            paint["line-color"] = p.curb.hexString
+            paint["line-opacity"] = 0.7
+        } else if id == "roads-case" || id == "road-polygon-case" || id == "tunnel-roads-case" {
+            paint["line-color"] = p.curb.hexString
+        } else {
+            return
+        }
+        layer["paint"] = paint
     }
 
     private static func dayGlass(_ p: CityPalette) -> [Any] {

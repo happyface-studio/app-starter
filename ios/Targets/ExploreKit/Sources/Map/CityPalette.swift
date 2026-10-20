@@ -15,36 +15,54 @@ struct CityPalette: Identifiable, Hashable {
     var landmark: UInt32
     var glass: Glass
     var land: UInt32
+    /// Shops, offices, schools, hospitals, industry — kept close to `land` so blocks don't patchwork.
+    var landuse: UInt32
+    /// Street surface, a touch lighter than `land` so streets read as paved bands.
     var roads: UInt32
     var trunks: UInt32
+    /// Road edges and tram rails.
+    var curb: UInt32
+    /// Plazas and footpaths.
+    var paving: UInt32
     var water: UInt32
     var green: UInt32
+
+    static let linen = CityPalette(
+        id: "linen", title: "Linen",
+        buildings: 0xF4EBDC, landmark: 0xF9EBD2,
+        glass: Glass(hue: 206...218, saturation: 38...50, lightness: 66...74),
+        land: 0xF0ECE3, landuse: 0xEDE7DC, roads: 0xFCFAF6, trunks: 0xF4E6CC,
+        curb: 0xE2DACC, paving: 0xE9E3D8, water: 0x5CACE2, green: 0x94CA86)
 
     static let cream = CityPalette(
         id: "cream", title: "Cream",
         buildings: 0xF7E9CF, landmark: 0xFCE5C0,
         glass: Glass(hue: 202...214, saturation: 42...55, lightness: 72...79),
-        land: 0xF2EADF, roads: 0xDDB3B5, trunks: 0xC98F92, water: 0x62B4EC, green: 0x8CCB5E)
+        land: 0xF2EADF, landuse: 0xEEE4D6, roads: 0xFBF6EE, trunks: 0xF0D9C9,
+        curb: 0xE6D8C2, paving: 0xEDE3D3, water: 0x62B4EC, green: 0x8CCB5E)
 
     static let sorbet = CityPalette(
         id: "sorbet", title: "Sorbet",
         buildings: 0xF9DCCB, landmark: 0xFCC6AE,
         glass: Glass(hue: 166...180, saturation: 34...44, lightness: 70...78),
-        land: 0xF7EDE6, roads: 0xF0BFC4, trunks: 0xE39AA6, water: 0x74C6E6, green: 0x9ED37F)
+        land: 0xF7EDE6, landuse: 0xF3E6DE, roads: 0xFDF6F2, trunks: 0xF4D2D2,
+        curb: 0xEBCFC8, paving: 0xF1E2DA, water: 0x74C6E6, green: 0x9ED37F)
 
     static let butter = CityPalette(
         id: "butter", title: "Butter",
         buildings: 0xF8E4A8, landmark: 0xFAD47A,
         glass: Glass(hue: 196...208, saturation: 50...60, lightness: 70...78),
-        land: 0xF4EBD3, roads: 0xE8C49D, trunks: 0xD9A274, water: 0x4FAEE6, green: 0x7EC25B)
+        land: 0xF4EBD3, landuse: 0xF0E6CC, roads: 0xFDF8EA, trunks: 0xF2DDB4,
+        curb: 0xE8D7AE, paving: 0xEFE5CC, water: 0x4FAEE6, green: 0x7EC25B)
 
     static let seaside = CityPalette(
         id: "seaside", title: "Seaside",
         buildings: 0xF2EEE8, landmark: 0xF7F0E4,
         glass: Glass(hue: 212...224, saturation: 35...45, lightness: 62...70),
-        land: 0xEDF0EA, roads: 0xD6DCE6, trunks: 0xB9C4D6, water: 0x56A3DA, green: 0x9CC98B)
+        land: 0xEDF0EA, landuse: 0xE7EBE5, roads: 0xFAFBFC, trunks: 0xE3E8EF,
+        curb: 0xD9DEE5, paving: 0xE4E8E6, water: 0x56A3DA, green: 0x9CC98B)
 
-    static let all: [CityPalette] = [.cream, .sorbet, .butter, .seaside]
+    static let all: [CityPalette] = [.linen, .cream, .sorbet, .butter, .seaside]
 
     static func named(_ id: String?) -> CityPalette? { all.first { $0.id == id } }
 
