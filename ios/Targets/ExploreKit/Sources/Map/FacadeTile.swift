@@ -13,8 +13,9 @@ struct FacadeTile: MapStyleContent {
     }
 
     static func render(_ p: CityPalette) -> UIImage {
-        // Patterns tile in screen points at the current zoom, so the bay is small: ~2.5 x 3.3 pt windows.
-        let size = CGSize(width: 6, height: 6)
+        // Patterns tile in screen points at the current zoom, so the bay is small. 16 px at @3x:
+        // seamless tiling wants power-of-two pixel sizes.
+        let size = CGSize(width: 16.0 / 3, height: 16.0 / 3)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 3
         return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
@@ -22,7 +23,7 @@ struct FacadeTile: MapStyleContent {
             wall.setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
 
-            let frame = CGRect(x: 1.7, y: 1.2, width: 2.6, height: 3.4)
+            let frame = CGRect(x: 1.5, y: 1.0, width: 2.33, height: 3.0)
             UIColor(white: 1, alpha: 0.45).setFill()
             ctx.fill(frame.insetBy(dx: -0.35, dy: -0.35))
             glass(p).setFill()
