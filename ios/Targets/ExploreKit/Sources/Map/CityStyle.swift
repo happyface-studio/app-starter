@@ -3,41 +3,51 @@ import UIKit
 
 enum CityStyle {
 
-    static func mapStyle(for mood: MapMood) -> MapStyle {
-        .standard(
-            theme: .default,
-            lightPreset: lightPreset(mood),
-            font: .rubik,
-            showPointOfInterestLabels: true,
-            showTransitLabels: false,
-            showPedestrianRoads: true,
-            show3dObjects: true,
-            backgroundPointOfInterestLabels: .circle,
-            colorBuildings: StyleColor(UIColor(hex: 0xF7E9CF)),
-            colorGreenspace: StyleColor(UIColor(hex: 0x8CCB5E)),
-            colorLand: StyleColor(UIColor(hex: 0xF2EADF)),
-            colorMotorways: StyleColor(UIColor(hex: 0xC98F92)),
-            colorPlaceLabels: StyleColor(UIColor(hex: 0x3B3F63)),
-            colorRoadLabels: StyleColor(UIColor(hex: 0x6E6F86)),
-            colorRoads: StyleColor(UIColor(hex: 0xDDB3B5)),
-            colorTrunks: StyleColor(UIColor(hex: 0xC98F92)),
-            colorWater: StyleColor(UIColor(hex: 0x62B4EC)),
-            densityPointOfInterestLabels: 1.4,
-            show3dBuildings: !UserDefaults.standard.bool(forKey: "toyExtrusions") && !LookTest.pastelBlocks,
-            show3dFacades: !UserDefaults.standard.bool(forKey: "toyExtrusions") && !LookTest.pastelBlocks,
-            show3dLandmarks: true,
-            show3dTrees: false,
-            showLandmarkIconLabels: true,
-            showLandmarkIcons: true
-        )
+    /// Uses the patched Standard (see `Basemap`) when available, plain Standard otherwise.
+    static func mapStyle(for mood: MapMood, basemap: String?) -> MapStyle {
+        if let basemap {
+            MapStyle(json: basemap, configuration: configuration(mood))
+        } else {
+            MapStyle(uri: .standard, configuration: configuration(mood))
+        }
     }
 
-    private static func lightPreset(_ mood: MapMood) -> StandardLightPreset {
+    private static func configuration(_ mood: MapMood) -> JSONObject {
+        let ownBuildings = UserDefaults.standard.bool(forKey: "toyExtrusions") || LookTest.pastelBlocks
+        return [
+            "theme": "default",
+            "lightPreset": .string(lightPreset(mood)),
+            "font": "Rubik",
+            "showPointOfInterestLabels": true,
+            "showTransitLabels": false,
+            "showPedestrianRoads": true,
+            "show3dObjects": true,
+            "backgroundPointOfInterestLabels": "circle",
+            "colorBuildings": "#F7E9CF",
+            "colorGreenspace": "#8CCB5E",
+            "colorLand": "#F2EADF",
+            "colorMotorways": "#C98F92",
+            "colorPlaceLabels": "#3B3F63",
+            "colorRoadLabels": "#6E6F86",
+            "colorRoads": "#DDB3B5",
+            "colorTrunks": "#C98F92",
+            "colorWater": "#62B4EC",
+            "densityPointOfInterestLabels": 1.4,
+            "show3dBuildings": .boolean(!ownBuildings),
+            "show3dFacades": .boolean(!ownBuildings),
+            "show3dLandmarks": true,
+            "show3dTrees": false,
+            "showLandmarkIconLabels": true,
+            "showLandmarkIcons": true,
+        ]
+    }
+
+    private static func lightPreset(_ mood: MapMood) -> String {
         switch mood {
-        case .day: .day
-        case .dawn: .dawn
-        case .dusk: .dusk
-        case .night: .night
+        case .day: "day"
+        case .dawn: "dawn"
+        case .dusk: "dusk"
+        case .night: "night"
         }
     }
 }

@@ -10,8 +10,17 @@ struct CityMapView: View {
     @Bindable var store: ExploreStore
     @Binding var viewport: Viewport
     var bottomInset: CGFloat
+    private let basemap = Basemap.shared
 
     var body: some View {
+        if basemap.isResolved || LandmarkMask.isEnabled {
+            map
+        } else {
+            Color(UIColor(hex: 0xF2EADF)).ignoresSafeArea()
+        }
+    }
+
+    private var map: some View {
         MapReader { proxy in
         Map(viewport: $viewport) {
             if LandmarkMask.isEnabled {
@@ -50,7 +59,9 @@ struct CityMapView: View {
                 Puck2D(bearing: .heading)
             }
         }
-        .mapStyle(LandmarkMask.isEnabled ? LandmarkMask.style : CityStyle.mapStyle(for: store.mood))
+        .mapStyle(LandmarkMask.isEnabled ? LandmarkMask.style : CityStyle.mapStyle(
+            for: store.mood,
+            basemap: UserDefaults.standard.bool(forKey: "plainStandard") ? nil : basemap.json))
         .ornamentOptions(
             OrnamentOptions(
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
