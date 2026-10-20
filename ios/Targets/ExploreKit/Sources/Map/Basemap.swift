@@ -189,6 +189,20 @@ final class Basemap {
     }
 
     private static func patchFacades(_ layer: inout [String: Any], _ p: CityPalette) {
+        // Standard only gives building parts (`building_id`) windows above 100 m, which leaves most
+        // multi-part buildings blank. Any wall of 4 m or more gets windows, one floor per ~3.6 m.
+        if var layout = layer["layout"] as? [String: Any] {
+            let wall: [Any] = ["-", ["get", "height"], ["coalesce", ["get", "min_height"], 0]]
+            layout["building-facade"] = [">=", wall, 4] as [Any]
+            if var floors = layout["building-facade-floors"] as? [Any],
+               var cases = floors[1] as? [Any], cases.count > 2 {
+                cases[2] = ["/", wall, 3.6] as [Any]
+                floors[1] = cases
+                layout["building-facade-floors"] = floors
+            }
+            layer["layout"] = layout
+        }
+
         guard var paint = layer["paint"] as? [String: Any] else { return }
 
         if var color = paint["building-color"] as? [Any],
