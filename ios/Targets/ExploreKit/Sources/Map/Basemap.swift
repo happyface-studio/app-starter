@@ -113,6 +113,15 @@ final class Basemap {
         ]
     }
 
+    /// A roof colour with a little per-building lightness jitter, so roofscapes don't read as one sheet.
+    private static func slate(_ hex: UInt32) -> [Any] {
+        let c: [Any] = ["to-hsla", hex.hexString]
+        return [
+            "hsl", ["at", 0, c], ["at", 1, c],
+            ["random", ["max", 0, ["-", ["at", 2, c], 5]], ["min", 100, ["+", ["at", 2, c], 3]], ["id"]],
+        ]
+    }
+
     private static let nightGlass: [Any] = ["hsl", ["random", 0, 90, ["id"]], ["random", 20, 100, ["id"]], 87]
 
     /// Model layers don't resolve `config` expressions for these batched landmark models
@@ -122,7 +131,7 @@ final class Basemap {
               var color = paint["model-color"] as? [Any] else { return }
         let tint = p.landmark.hexString
         let hsla: (Int) -> [Any] = { ["at", $0, ["to-hsla", tint]] }
-        let roof: [Any] = [
+        let roof: [Any] = p.roof.map(slate) ?? [
             "let", "h", hsla(0), "s", hsla(1), "l", hsla(2),
             ["hsl", ["max", 0, ["-", ["var", "h"], 12]], ["var", "s"], ["max", 0, ["-", ["var", "l"], 3]]],
         ]
@@ -155,6 +164,9 @@ final class Basemap {
            var parts = body.last as? [Any],
            let w = parts.firstIndex(where: { $0 as? String == "window" }), w + 1 < parts.count {
             parts[w + 1] = ["match", ["config", "lightPreset"], "night", nightGlass, dayGlass(p)] as [Any]
+            if let roof = p.roof, let r = parts.firstIndex(where: { $0 as? String == "roof" }), r + 1 < parts.count {
+                parts[r + 1] = slate(roof)
+            }
             body[body.count - 1] = parts
             color[color.count - 1] = body
             paint["building-color"] = color

@@ -26,6 +26,17 @@ struct CityPalette: Identifiable, Hashable {
     var paving: UInt32
     var water: UInt32
     var green: UInt32
+    /// Roof colour for façade buildings and landmarks; `nil` keeps Standard's wall-derived roofs.
+    var roof: UInt32? = nil
+
+    /// Matched to the London toy-map reference: sand walls, slate roofs, rose roads, olive parks.
+    static let mayfair = CityPalette(
+        id: "mayfair", title: "Mayfair",
+        buildings: 0xEBD6B6, landmark: 0xF0D6AE,
+        glass: Glass(hue: 226...234, saturation: 22...32, lightness: 36...46),
+        land: 0xE4D4BD, landuse: 0xE1D0B8, roads: 0xCF9C92, trunks: 0xC68E86,
+        curb: 0xEADCC6, paving: 0xE4D2B8, water: 0x5A9AC2, green: 0xA0B65A,
+        roof: 0x737EA8)
 
     static let linen = CityPalette(
         id: "linen", title: "Linen",
@@ -62,7 +73,7 @@ struct CityPalette: Identifiable, Hashable {
         land: 0xEDF0EA, landuse: 0xE7EBE5, roads: 0xFAFBFC, trunks: 0xE3E8EF,
         curb: 0xD9DEE5, paving: 0xE4E8E6, water: 0x56A3DA, green: 0x9CC98B)
 
-    static let all: [CityPalette] = [.linen, .cream, .sorbet, .butter, .seaside]
+    static let all: [CityPalette] = [.mayfair, .linen, .cream, .sorbet, .butter, .seaside]
 
     static func named(_ id: String?) -> CityPalette? { all.first { $0.id == id } }
 

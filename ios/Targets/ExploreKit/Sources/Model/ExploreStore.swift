@@ -65,7 +65,7 @@ final class ExploreStore {
     var filter: Filter?
     var selection: Selection?
     var mood: MapMood = .day
-    var palette = CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .linen {
+    var palette = CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .mayfair {
         didSet { UserDefaults.standard.set(palette.id, forKey: "palette") }
     }
     var is3D = true
