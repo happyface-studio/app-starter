@@ -19,6 +19,8 @@ struct CityMapView: View {
                 ToyBuildings()
             } else if UserDefaults.standard.bool(forKey: "toyExtrusions") {
                 CityBuildings()
+            } else if LookTest.pastelBlocks {
+                PastelBlocks()
             }
             if !LandmarkMask.isEnabled {
                 PuffyTrees()
