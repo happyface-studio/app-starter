@@ -17,7 +17,7 @@ struct CityMapView: View {
             if LandmarkMask.isEnabled {
             } else if UserDefaults.standard.bool(forKey: "bakedAltstadt") {
                 ToyBuildings()
-            } else {
+            } else if UserDefaults.standard.bool(forKey: "toyExtrusions") {
                 CityBuildings()
             }
             if !LandmarkMask.isEnabled {
