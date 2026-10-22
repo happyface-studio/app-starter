@@ -157,6 +157,14 @@ def vehicles():
         car(name, rgb)
     car("car_taxi", (0.94, 0.90, 0.78), roof_sign=(0.98, 0.84, 0.30))
     bus("bus", (0.96, 0.95, 0.92), (0.80, 0.18, 0.20))
+    # Head and tail lights as their own models, so only they glow after dark.
+    head, tail = (1.0, 0.95, 0.80), (1.0, 0.18, 0.15)
+    for name, L, W, z in (("car_lights", 4.2, 1.8, 0.72), ("bus_lights", 11.0, 2.5, 1.0)):
+        parts = []
+        for y in (-(W / 2 - 0.3), W / 2 - 0.3):
+            parts.append((box(0.06, 0.34, 0.16, (L / 2 + 0.02, y, z)), head))
+            parts.append((box(0.06, 0.30, 0.14, (-L / 2 - 0.02, y, z)), tail))
+        export(name, parts)
 
 
 SKIN = (0.93, 0.76, 0.62)

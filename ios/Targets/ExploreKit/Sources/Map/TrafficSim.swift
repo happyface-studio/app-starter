@@ -38,6 +38,7 @@ final class TrafficSim: NSObject {
     private struct Car {
         var id: Int
         var lane: Int
+        var prev: Int?
         var next: Int?
         var d: Double
         var speed: Double
@@ -193,7 +194,7 @@ final class TrafficSim: NSObject {
         let isBus = l.weight >= 2 && Double.random(in: 0..<1) < 0.07
         let model = isBus ? "bus" : (Double.random(in: 0..<1) < 0.12 ? "car_taxi" : Self.models[Int.random(in: 0..<6)])
         let cruise = l.speed * Double.random(in: 0.6...0.8)
-        cars.append(Car(id: nextID, lane: lane, next: chooseNext(after: lane), d: d,
+        cars.append(Car(id: nextID, lane: lane, prev: nil, next: chooseNext(after: lane), d: d,
                         speed: cruise, model: model, length: isBus ? 11 : 4.4, cruise: cruise))
         nextID += 1
     }
@@ -248,15 +249,23 @@ final class TrafficSim: NSObject {
                 }
             }
 
+            // Ease off before a sharp turn so the corner curve reads as a turn, not a skid.
+            var cornerCap = Double.infinity
+            if let n = c.next, l.length - c.d < 25 {
+                let turn = simd_dot(endDirection(l), simd_normalize(lanes[n].pts[1] - lanes[n].pts[0]))
+                if turn < 0.7 { cornerCap = (turn < 0 ? 3.5 : 5) + sqrt(2 * 2.5 * max(0, l.length - c.d)) }
+            }
+
             let brake = 4.0, accel = 1.8
             let safe = gap.isFinite ? sqrt(max(0, 2 * brake * max(0, gap - 2.5))) : c.cruise
-            let target = min(c.cruise, safe)
+            let target = min(c.cruise, safe, cornerCap)
             c.speed = c.speed < target ? min(target, c.speed + accel * dt) : max(target, c.speed - brake * 1.5 * dt)
             c.d += c.speed * dt
 
             while c.d > lanes[c.lane].length {
                 c.d -= lanes[c.lane].length
                 guard let n = c.next else { remove.insert(c.id); break }
+                c.prev = c.lane
                 c.lane = n
                 c.next = chooseNext(after: n)
                 c.cruise = lanes[n].speed * Double.random(in: 0.6...0.8)
@@ -268,18 +277,59 @@ final class TrafficSim: NSObject {
 
     // MARK: Output
 
+    private func endDirection(_ l: Lane) -> SIMD2<Double> {
+        simd_normalize(l.pts[l.pts.count - 1] - l.pts[l.pts.count - 2])
+    }
+
+    /// One straight piece of a lane, already shifted to the driving side.
+    private struct Piece {
+        var a: SIMD2<Double>, b: SIMD2<Double>, dir: SIMD2<Double>, length: Double
+    }
+
+    private func piece(_ lane: Int, _ i: Int) -> Piece {
+        let l = lanes[lane]
+        let dir = simd_normalize(l.pts[i] - l.pts[i - 1])
+        let right = SIMD2(dir.y, -dir.x) * l.offset
+        return Piece(a: l.pts[i - 1] + right, b: l.pts[i] + right, dir: dir, length: l.cum[i] - l.cum[i - 1])
+    }
+
+    /// Corners are rounded: within `r` of a vertex (also across a junction into the next or from the
+    /// previous lane) the car follows a quadratic curve instead of snapping to the new heading.
     private func position(of c: Car) -> (p: SIMD2<Double>, heading: Double) {
         let l = lanes[c.lane]
         let d = min(max(c.d, 0), l.length)
         var i = 1
         while i < l.cum.count - 1 && l.cum[i] < d { i += 1 }
-        let a = l.pts[i - 1], b = l.pts[i]
-        let seg = max(l.cum[i] - l.cum[i - 1], 0.001)
-        let t = (d - l.cum[i - 1]) / seg
-        let dir = simd_normalize(b - a)
-        let right = SIMD2(dir.y, -dir.x)
-        let p = a + (b - a) * t + right * l.offset
-        return (p, atan2(dir.y, dir.x) * 180 / .pi)
+        let here = piece(c.lane, i)
+        let s = d - l.cum[i - 1], e = l.cum[i] - d
+
+        func curve(_ pin: Piece, _ pout: Piece, u: Double) -> (SIMD2<Double>, Double)? {
+            let r = min(7, pin.length / 2, pout.length / 2)
+            guard r > 0.5, simd_dot(pin.dir, pout.dir) < 0.999 else { return nil }
+            let p0 = pin.b - pin.dir * r, p2 = pout.a + pout.dir * r
+            let p1 = (pin.b + pout.a) / 2
+            let t = u
+            let p = (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2
+            let v = 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1)
+            return (p, atan2(v.y, v.x) * 180 / .pi)
+        }
+
+        // Approaching the end of this piece.
+        let nextPiece: Piece? = i < l.pts.count - 1 ? piece(c.lane, i + 1)
+            : c.next.map { piece($0, 1) }
+        if let np = nextPiece {
+            let r = min(7, here.length / 2, np.length / 2)
+            if e < r, let out = curve(here, np, u: (r - e) / (2 * r)) { return out }
+        }
+        // Leaving the start of this piece.
+        let prevPiece: Piece? = i > 1 ? piece(c.lane, i - 1)
+            : c.prev.map { piece($0, lanes[$0].pts.count - 1) }
+        if let pp = prevPiece {
+            let r = min(7, here.length / 2, pp.length / 2)
+            if s < r, let out = curve(pp, here, u: 0.5 + s / (2 * r)) { return out }
+        }
+        let t = s / max(here.length, 0.001)
+        return (here.a + (here.b - here.a) * t, atan2(here.dir.y, here.dir.x) * 180 / .pi)
     }
 
     private func publish(_ list: [Car]) {
@@ -297,6 +347,19 @@ final class TrafficSim: NSObject {
 
 /// Map layer for the simulated vehicles.
 struct Traffic: MapStyleContent {
+    var mood: MapMood = .day
+
+    static var scale: Exp {
+        Exp(.interpolate) {
+            Exp(.linear)
+            Exp(.zoom)
+            15.5
+            [1.6, 1.6, 1.6]
+            18
+            [1.2, 1.2, 1.2]
+        }
+    }
+
     var body: some MapStyleContent {
         GeoJSONSource.live(TrafficSim.sourceID)
 
@@ -308,22 +371,29 @@ struct Traffic: MapStyleContent {
         Model(id: "car_black", uri: PuffyTrees.model("car_black"))
         Model(id: "car_taxi", uri: PuffyTrees.model("car_taxi"))
         Model(id: "bus", uri: PuffyTrees.model("bus"))
+        Model(id: "car_lights", uri: PuffyTrees.model("car_lights"))
+        Model(id: "bus_lights", uri: PuffyTrees.model("bus_lights"))
 
         ModelLayer(id: "traffic", source: TrafficSim.sourceID)
             .slot(.middle)
             .minZoom(15.3)
             .modelId(Exp(.get) { "m" })
             .modelType(.common3d)
-            .modelScale(Exp(.interpolate) {
-                Exp(.linear)
-                Exp(.zoom)
-                15.5
-                [1.6, 1.6, 1.6]
-                18
-                [1.2, 1.2, 1.2]
-            })
+            .modelScale(Self.scale)
             .modelRotation(Exp(.get) { "r" })
             .modelCastShadows(true)
             .modelReceiveShadows(true)
+
+        if mood != .day {
+            ModelLayer(id: "traffic-lights", source: TrafficSim.sourceID)
+                .slot(.middle)
+                .minZoom(15.3)
+                .modelId(Exp(.match) { Exp(.get) { "m" }; "bus"; "bus_lights"; "car_lights" })
+                .modelType(.common3d)
+                .modelScale(Self.scale)
+                .modelRotation(Exp(.get) { "r" })
+                .modelCastShadows(false)
+                .modelEmissiveStrength(mood == .night ? 2 : 1.2)
+        }
     }
 }

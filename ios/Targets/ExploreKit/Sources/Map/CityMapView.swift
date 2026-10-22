@@ -40,7 +40,8 @@ struct CityMapView: View {
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
                 PuffyTrees(season: LiveConditions.shared.season)
                 StreetFurniture(mood: store.mood)
-                Traffic()
+                StreetDetail()
+                Traffic(mood: store.mood)
                 LivingLayers()
                 WeatherEffects(sky: LiveConditions.shared.sky)
             }
