@@ -3,7 +3,7 @@
   python3 ios/tools/make_street_textures.py
 
 Drawn at @2x; the map tints nothing, it lays these over the palette colours.
-  tex_cobbles  small rounded setts in offset rows, @3x (pedestrian zones, plazas)
+  tex_cobbles  small rounded setts (2 pt) in offset rows, @3x (pedestrian zones, plazas)
   tex_slabs    running-bond paving slabs (footpaths, sidewalks)
   tex_grain    faint asphalt grain with a few pebbles (roads)
   tex_grass    mottled lawn with fine blades (parks, grass)
@@ -38,22 +38,25 @@ def tiled(size, draw_fn, blur=0.0):
 
 
 def cobbles():
-    # @3x tile; 12 px setts = 4 pt on screen
-    w, h, sw, sh = 192, 192, 12, 12
+    # @3x tile with 6 px setts = 2 pt on screen. Drawn 4x larger and downsampled so the
+    # tiny stones and joints stay crisp instead of blurring into noise.
+    k = 4
+    w, h, sw, sh = 192 * k, 192 * k, 6 * k, 6 * k
     rows = h // sh
+    j = 0.55 * k  # joint half-width
 
     def draw(d, ox, oy):
         for r in range(rows):
             shift = (sw // 2) if r % 2 else 0
             for c in range(w // sw + 1):
-                x0 = ox + c * sw + shift + random.choice((-0.5, 0, 0.5))
+                x0 = ox + c * sw + shift + random.choice((-0.25, 0, 0.25)) * k
                 y0 = oy + r * sh
-                box = (x0 + 1.2, y0 + 1.2, x0 + sw - 1.2, y0 + sh - 1.2)
-                d.rounded_rectangle((box[0] - 1.2, box[1] - 1.2, box[2] + 1.2, box[3] + 1.2), 4, fill=(*JOINT, 46))
-                d.rounded_rectangle(box, 3, fill=(*LIGHT, random.randint(6, 24)))
-                d.rounded_rectangle((box[0] + 1.5, box[1] + 1, box[2] - 3, box[1] + 3), 1.5, fill=(*LIGHT, 30))
+                box = (x0 + j, y0 + j, x0 + sw - j, y0 + sh - j)
+                d.rounded_rectangle((box[0] - j, box[1] - j, box[2] + j, box[3] + j), 2 * k, fill=(*JOINT, 72))
+                d.rounded_rectangle(box, 1.6 * k, fill=(*LIGHT, random.randint(6, 26)))
+                d.rounded_rectangle((box[0] + 0.7 * k, box[1] + 0.5 * k, box[2] - 1.4 * k, box[1] + 1.4 * k), 0.7 * k, fill=(*LIGHT, 32))
 
-    img = tiled((w, h), draw, blur=0.5)
+    img = tiled((w, h), draw, blur=0.3 * k).resize((192, 192), Image.LANCZOS)
     img.save(os.path.join(OUT, "tex_cobbles@3x.png"))
 
 
