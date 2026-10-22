@@ -90,7 +90,13 @@ final class Basemap {
             case "ambient":
                 props["intensity"] = byDay(0.58, props["intensity"])
             case "directional":
-                props["intensity"] = byDay(0.55, props["intensity"])
+                // A zoom curve must stay the outermost expression, so override each stop instead.
+                if var curve = props["intensity"] as? [Any], curve.first as? String == "interpolate" {
+                    for k in stride(from: 4, to: curve.count, by: 2) { curve[k] = byDay(0.55, curve[k]) }
+                    props["intensity"] = curve
+                } else {
+                    props["intensity"] = byDay(0.55, props["intensity"])
+                }
                 props["direction"] = byDay(["literal", [205, 42]] as [Any], props["direction"])
             default: break
             }
