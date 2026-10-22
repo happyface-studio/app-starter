@@ -99,8 +99,8 @@ def grass():
     dark, light = (46, 70, 20), (236, 248, 190)
 
     def draw(d, ox, oy):
-        mottle(d, ox, oy, w, h, 26, 14, 30, dark, 10, 22)
-        mottle(d, ox, oy, w, h, 22, 12, 26, light, 8, 18)
+        mottle(d, ox, oy, w, h, 28, 14, 32, dark, 16, 30)
+        mottle(d, ox, oy, w, h, 24, 12, 28, light, 12, 24)
 
     base = tiled((w, h), draw, blur=9)
 
@@ -110,7 +110,7 @@ def grass():
             ln = random.uniform(1.5, 3.5)
             lean = random.uniform(-0.8, 0.8)
             is_dark = random.random() < 0.55
-            d.line((x, y, x + lean, y - ln), fill=(*(dark if is_dark else light), random.randint(22, 48)), width=1)
+            d.line((x, y, x + lean, y - ln), fill=(*(dark if is_dark else light), random.randint(30, 60)), width=1)
 
     top = tiled((w, h), blades)
     base.alpha_composite(top)
@@ -122,8 +122,8 @@ def water():
     light, deep = (235, 248, 255), (20, 60, 110)
 
     def draw(d, ox, oy):
-        mottle(d, ox, oy, w, h, 18, 18, 40, light, 8, 18)
-        mottle(d, ox, oy, w, h, 14, 18, 36, deep, 6, 14)
+        mottle(d, ox, oy, w, h, 18, 18, 40, light, 12, 24)
+        mottle(d, ox, oy, w, h, 14, 18, 36, deep, 10, 18)
 
     base = tiled((w, h), draw, blur=12)
 
