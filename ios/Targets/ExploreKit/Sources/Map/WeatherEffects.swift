@@ -43,6 +43,7 @@ struct CloudShadows: MapStyleContent {
                 .url(url.absoluteString)
                 .coordinates(CloudDrift.corners(offset: .zero))
 
+
             RasterLayer(id: "cloud-shadows", source: Self.sourceID)
                 .slot(.middle)
                 .rasterOpacity(opacity)
@@ -64,6 +65,12 @@ final class CloudDrift: NSObject {
     private var link: CADisplayLink?
     private var offset = SIMD2<Double>(0, 0)
     private var last: CFTimeInterval = 0
+    private var needsImage = true
+    private lazy var image = UIImage(contentsOfFile: exploreBundle.path(forResource: "clouds", ofType: "png") ?? "")
+
+    /// Bundle file URLs aren't fetched by the image source, so the pixels are handed over directly,
+    /// again after every style load.
+    func styleLoaded() { needsImage = true }
 
     nonisolated static func corners(offset: SIMD2<Double>) -> [[Double]] {
         let mLat = 111_320.0, mLon = 111_320.0 * cos(center.lat * .pi / 180)
@@ -76,6 +83,7 @@ final class CloudDrift: NSObject {
 
     func start(map: MapboxMap?) {
         self.map = map
+        needsImage = true
         guard link == nil else { return }
         let link = CADisplayLink(target: self, selector: #selector(step))
         link.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 10)
@@ -87,6 +95,9 @@ final class CloudDrift: NSObject {
         let dt = last == 0 ? 0 : min(link.timestamp - last, 0.3)
         last = link.timestamp
         guard let map else { return }
+        if needsImage, let image, (try? map.updateImageSource(withId: CloudShadows.sourceID, image: image)) != nil {
+            needsImage = false
+        }
         let live = LiveConditions.shared
         let speed = max(1.5, min(live.windSpeed, 9))
         let towards = live.windTowards * .pi / 180

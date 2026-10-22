@@ -129,7 +129,7 @@ TREES = {  # name: (seed, shape kwargs)
 
 SEASONS = {  # suffix: crown colour per model (sunlit top, sRGB); None = bare
     "": {"tree_a": (0.60, 0.65, 0.33), "tree_b": (0.52, 0.60, 0.29), "tree_c": (0.66, 0.68, 0.36), "bush_a": (0.56, 0.63, 0.30)},
-    "_autumn": {"tree_a": (0.90, 0.56, 0.22), "tree_b": (0.92, 0.74, 0.28), "tree_c": (0.76, 0.34, 0.20), "bush_a": (0.70, 0.56, 0.26)},
+    "_autumn": {"tree_a": (0.82, 0.56, 0.26), "tree_b": (0.84, 0.70, 0.32), "tree_c": (0.70, 0.36, 0.22), "bush_a": (0.64, 0.56, 0.28)},
     "_winter": {"tree_a": None, "tree_b": None, "tree_c": None, "bush_a": (0.46, 0.44, 0.33)},
     "_spring": {"tree_a": (0.70, 0.80, 0.40), "tree_b": (0.62, 0.76, 0.36), "tree_c": (0.97, 0.78, 0.83), "bush_a": (0.66, 0.76, 0.36)},
 }

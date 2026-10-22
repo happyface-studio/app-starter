@@ -78,6 +78,7 @@ struct CityMapView: View {
             )
         )
         .additionalSafeAreaInsets(.bottom, bottomInset)
+        .onStyleLoaded { _ in CloudDrift.shared.styleLoaded() }
         .onMapLoaded { _ in
             WaterDrift.shared.start(map: proxy.map)
             TrafficSim.shared.start(map: proxy.map)
