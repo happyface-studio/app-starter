@@ -298,10 +298,7 @@ final class TrafficSim: NSObject {
 /// Map layer for the simulated vehicles.
 struct Traffic: MapStyleContent {
     var body: some MapStyleContent {
-        // Points re-tile on every update; capping the source zoom keeps that to fewer tile levels.
-        GeoJSONSource(id: TrafficSim.sourceID)
-            .data(.featureCollection(FeatureCollection(features: [])))
-            .maxzoom(16)
+        GeoJSONSource.live(TrafficSim.sourceID)
 
         Model(id: "car_red", uri: PuffyTrees.model("car_red"))
         Model(id: "car_blue", uri: PuffyTrees.model("car_blue"))

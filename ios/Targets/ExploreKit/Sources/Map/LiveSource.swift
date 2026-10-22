@@ -56,3 +56,14 @@ final class LiveSource {
     /// After a style reload the source starts empty again.
     func reset() { published = [] }
 }
+
+extension GeoJSONSource {
+    /// Empty source for live point data. Points re-tile on every update; capping the source zoom
+    /// keeps that work to fewer tile levels (z16 tiles still place points to a few centimetres).
+    static func live(_ id: String) -> GeoJSONSource {
+        var source = GeoJSONSource(id: id)
+        source.data = .featureCollection(FeatureCollection(features: []))
+        source.maxzoom = 16
+        return source
+    }
+}

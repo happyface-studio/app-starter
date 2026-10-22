@@ -104,10 +104,10 @@ struct LivingLayers: MapStyleContent {
     }
 
     var body: some MapStyleContent {
-        GeoJSONSource(id: "people").data(Self.empty()).maxzoom(16)
-        GeoJSONSource(id: "trams").data(Self.empty()).maxzoom(16)
-        GeoJSONSource(id: "river").data(Self.empty()).maxzoom(16)
-        GeoJSONSource(id: SmallTouches.planeSource).data(Self.empty()).maxzoom(16)
+        GeoJSONSource.live("people")
+        GeoJSONSource.live("trams")
+        GeoJSONSource.live("river")
+        GeoJSONSource.live(SmallTouches.planeSource)
         GeoJSONSource(id: "fountain-a").data(.featureCollection(SmallTouches.sparkles.a))
         GeoJSONSource(id: "fountain-b").data(.featureCollection(SmallTouches.sparkles.b))
 
