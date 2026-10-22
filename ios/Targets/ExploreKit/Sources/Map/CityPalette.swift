@@ -79,6 +79,33 @@ struct CityPalette: Identifiable, Hashable {
 
     static func named(_ id: String?) -> CityPalette? { all.first { $0.id == id } }
 
+    /// The same style under snow: ground, parks, pavements and roofs blend towards snow white,
+    /// roads to a pale slush, water a little icier. `cover` is 0...1.
+    func snowy(_ cover: Double) -> CityPalette {
+        let c = max(0, min(1, cover))
+        func mix(_ hex: UInt32, _ target: UInt32, _ t: Double) -> UInt32 {
+            func ch(_ v: UInt32, _ s: UInt32) -> UInt32 { (v >> s) & 0xFF }
+            func m(_ s: UInt32) -> UInt32 {
+                UInt32((Double(ch(hex, s)) * (1 - t) + Double(ch(target, s)) * t).rounded()) << s
+            }
+            return m(16) | m(8) | m(0)
+        }
+        let snow: UInt32 = 0xF4F6FA, slush: UInt32 = 0xD9DADF
+        var p = self
+        p.id = "\(id)-snow\(Int(c * 10))"
+        p.land = mix(land, snow, 0.85 * c)
+        p.landuse = mix(landuse, snow, 0.85 * c)
+        p.green = mix(green, snow, 0.8 * c)
+        p.paving = mix(paving, snow, 0.8 * c)
+        p.curb = mix(curb, snow, 0.7 * c)
+        p.roads = mix(roads, slush, 0.7 * c)
+        p.trunks = mix(trunks, slush, 0.6 * c)
+        p.water = mix(water, 0x8FB4CC, 0.35 * c)
+        p.roof = roof.map { mix($0, snow, 0.75 * c) } ?? mix(buildings, snow, 0.75 * c)
+        p.landmarkRoof = landmarkRoof.map { mix($0, 0xC8CEDC, 0.8 * c) }
+        return p
+    }
+
     var swatch: Color { Color(UIColor(hex: buildings)) }
 }
 

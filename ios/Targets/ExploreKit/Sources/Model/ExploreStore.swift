@@ -70,6 +70,11 @@ final class ExploreStore {
     var palette = CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .mayfair {
         didSet { UserDefaults.standard.set(palette.id, forKey: "palette") }
     }
+    /// The palette actually drawn: the chosen style, snowed-in when Frankfurt has snow.
+    var renderPalette: CityPalette {
+        let cover = LiveConditions.shared.snowCover
+        return cover > 0.25 ? palette.snowy(cover) : palette
+    }
     var is3D = true
     var showsUserLocation = false
     var plannedEventIDs: Set<String> = []

@@ -52,6 +52,13 @@ final class LiveConditions {
     /// Wind the clouds drift with: speed in m/s, direction it blows *towards* in degrees from north.
     private(set) var windSpeed: Double = 3
     private(set) var windTowards: Double = 70
+    private(set) var snowDepth: Double = 0
+
+    /// How snowed-in the city looks, 0...1: lying snow from the weather service, or snow falling in winter.
+    var snowCover: Double {
+        if sky == .snow && (season == .winter || snowDepth > 0) { return 1 }
+        return min(1, snowDepth / 0.03)
+    }
 
     private let latitude = 50.1109, longitude = 8.6821
     private var timer: Timer?
@@ -91,7 +98,7 @@ final class LiveConditions {
         var c = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
         c.queryItems = [
             .init(name: "latitude", value: "\(latitude)"), .init(name: "longitude", value: "\(longitude)"),
-            .init(name: "current", value: "weather_code,cloud_cover,wind_speed_10m,wind_direction_10m"),
+            .init(name: "current", value: "weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,snow_depth"),
             .init(name: "wind_speed_unit", value: "ms"),
         ]
         guard let url = c.url,
@@ -101,6 +108,7 @@ final class LiveConditions {
         if let code = current["weather_code"] as? Int { apply(sky: Sky(wmo: code)) }
         if let cover = current["cloud_cover"] as? Double { cloudCover = cover / 100 }
         if let speed = current["wind_speed_10m"] as? Double { windSpeed = speed }
+        if let depth = current["snow_depth"] as? Double { snowDepth = depth }
         if let from = current["wind_direction_10m"] as? Double { windTowards = (from + 180).truncatingRemainder(dividingBy: 360) }
     }
 

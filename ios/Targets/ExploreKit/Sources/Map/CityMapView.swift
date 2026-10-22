@@ -32,14 +32,15 @@ struct CityMapView: View {
                 PastelBlocks()
             }
             if !LandmarkMask.isEnabled {
-                GroundTextures(palette: store.palette)
-                FacadeTile(palette: store.palette)
-                PlainBuildings(palette: store.palette)
+                GroundTextures(palette: store.renderPalette)
+                FacadeTile(palette: store.renderPalette)
+                PlainBuildings(palette: store.renderPalette)
                 StreetTextures()
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
                 PuffyTrees(season: LiveConditions.shared.season)
                 StreetFurniture(mood: store.mood)
                 Traffic()
+                LivingLayers()
                 WeatherEffects(sky: LiveConditions.shared.sky)
             }
 
@@ -69,8 +70,8 @@ struct CityMapView: View {
         }
         .mapStyle(LandmarkMask.isEnabled ? LandmarkMask.style : CityStyle.mapStyle(
             for: store.mood,
-            palette: store.palette,
-            basemap: UserDefaults.standard.bool(forKey: "plainStandard") ? nil : basemap.json(for: store.palette)))
+            palette: store.renderPalette,
+            basemap: UserDefaults.standard.bool(forKey: "plainStandard") ? nil : basemap.json(for: store.renderPalette)))
         .ornamentOptions(
             OrnamentOptions(
                 scaleBar: ScaleBarViewOptions(visibility: .hidden),
@@ -83,13 +84,15 @@ struct CityMapView: View {
             WaterDrift.shared.start(map: proxy.map)
             TrafficSim.shared.start(map: proxy.map)
             CloudDrift.shared.start(map: proxy.map)
+            LivingCity.shared.start(map: proxy.map)
             if LandmarkMask.isEnabled {
                 LandmarkMask.run(proxy: proxy)
             } else if LandmarkDump.isEnabled, let map = proxy.map {
                 LandmarkDump.run(map: map) { opts in map.setCamera(to: opts) }
             }
         }
-        .onMapTapGesture { _ in
+        .onMapTapGesture { context in
+            if SmallTouches.shared.tap(at: context.coordinate) { return }
             if store.selection != nil { store.selection = nil }
         }
         .ignoresSafeArea()
