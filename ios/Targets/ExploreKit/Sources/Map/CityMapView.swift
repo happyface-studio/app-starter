@@ -76,6 +76,7 @@ struct CityMapView: View {
         )
         .additionalSafeAreaInsets(.bottom, bottomInset)
         .onMapLoaded { _ in
+            WaterDrift.shared.start(map: proxy.map)
             if LandmarkMask.isEnabled {
                 LandmarkMask.run(proxy: proxy)
             } else if LandmarkDump.isEnabled, let map = proxy.map {

@@ -212,6 +212,17 @@ final class Basemap {
                 floors[1] = cases
                 layout["building-facade-floors"] = floors
             }
+            // Buildings without mapped roof data get Standard's flat parapet roof, which can't catch
+            // light. Low-rise ones get sloped mansard roofs instead, like the toy-map reference, so
+            // the slopes facing away from the sun darken. Towers keep parapets.
+            let lowRise: [Any] = ["<=", ["get", "height"], 30]
+            layout["building-roof-shape"] = [
+                "case",
+                ["all", ["<=", ["get", "area"], 200], [">=", ["get", "height"], 100]], "flat",
+                ["has", "roof_type"], ["get", "roof_type"],
+                lowRise, "mansard",
+                "parapet",
+            ] as [Any]
             layer["layout"] = layout
         }
 
