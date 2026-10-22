@@ -118,9 +118,10 @@ struct MapControls: View {
                         Label(mood.title, systemImage: mood.symbol).tag(MapMood?.some(mood))
                     }
                 }
-                Picker("Style", selection: $store.palette) {
-                    ForEach(CityPalette.all) { palette in
-                        Text(palette.title).tag(palette)
+                Picker("Season", selection: Bindable(LiveConditions.shared).manualSeason) {
+                    Label("Season now", systemImage: "calendar").tag(Season?.none)
+                    ForEach(Season.allCases) { season in
+                        Label(season.title, systemImage: season.symbol).tag(Season?.some(season))
                     }
                 }
             } label: {

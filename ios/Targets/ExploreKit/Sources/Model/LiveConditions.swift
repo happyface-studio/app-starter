@@ -1,8 +1,19 @@
 import Foundation
 import Observation
 
-enum Season: String {
+enum Season: String, CaseIterable, Identifiable {
     case spring, summer, autumn, winter
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+    var symbol: String {
+        switch self {
+        case .spring: "camera.macro"
+        case .summer: "sun.max"
+        case .autumn: "leaf"
+        case .winter: "snowflake"
+        }
+    }
 
     /// Model-name suffix for seasonal trees (`tree_a_autumn` etc.); summer uses the plain models.
     var modelSuffix: String { self == .summer ? "" : "_\(rawValue)" }
@@ -46,7 +57,10 @@ final class LiveConditions {
     static let shared = LiveConditions()
 
     private(set) var mood: MapMood = .day
-    private(set) var season: Season = .of(Date())
+    /// `nil` follows the calendar. Picking winter by hand also snows the city in.
+    var manualSeason: Season? = UserDefaults.standard.string(forKey: "season").flatMap(Season.init(rawValue:))
+    private var calendarSeason: Season = .of(Date())
+    var season: Season { manualSeason ?? calendarSeason }
     private(set) var sky: Sky = .partly
     private(set) var cloudCover: Double = 0.4
     /// Wind the clouds drift with: speed in m/s, direction it blows *towards* in degrees from north.
@@ -56,6 +70,8 @@ final class LiveConditions {
 
     /// How snowed-in the city looks, 0...1: lying snow from the weather service, or snow falling in winter.
     var snowCover: Double {
+        if manualSeason == .winter { return 1 }
+        if manualSeason != nil { return 0 }
         if sky == .snow && (season == .winter || snowDepth > 0) { return 1 }
         return min(1, snowDepth / 0.03)
     }
@@ -66,7 +82,6 @@ final class LiveConditions {
     private let forcedSky = UserDefaults.standard.string(forKey: "weather").flatMap(Sky.init(rawValue:))
 
     private init() {
-        if let s = UserDefaults.standard.string(forKey: "season").flatMap(Season.init(rawValue:)) { season = s }
         if let forcedSky { apply(sky: forcedSky) }
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { _ in
@@ -77,7 +92,7 @@ final class LiveConditions {
     private func refresh() {
         let now = Date()
         mood = Self.mood(at: now, latitude: latitude, longitude: longitude)
-        if UserDefaults.standard.string(forKey: "season") == nil { season = .of(now) }
+        calendarSeason = .of(now)
         if forcedSky == nil, now.timeIntervalSince(lastFetch) > 15 * 60 {
             lastFetch = now
             Task { await fetchWeather() }

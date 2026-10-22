@@ -67,10 +67,12 @@ final class ExploreStore {
     /// `nil` follows the real Frankfurt time of day (`LiveConditions`).
     var manualMood: MapMood?
     var mood: MapMood { manualMood ?? LiveConditions.shared.mood }
-    var palette = CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .mayfair {
-        didSet { UserDefaults.standard.set(palette.id, forKey: "palette") }
-    }
-    /// The palette actually drawn: the chosen style, snowed-in when Frankfurt has snow.
+    /// Mayfair is the look; `-palette <id>` swaps it for testing.
+    let palette: CityPalette = {
+        UserDefaults.standard.removeObject(forKey: "palette")   // drop a style saved by the old picker
+        return CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .mayfair
+    }()
+    /// The palette actually drawn: snowed-in when Frankfurt has snow (or winter is picked).
     var renderPalette: CityPalette {
         let cover = LiveConditions.shared.snowCover
         return cover > 0.25 ? palette.snowy(cover) : palette
