@@ -63,10 +63,11 @@ def shade_crown(mesh, green, y0, y1):
     y = mesh.vertices[:, 1]
     t = np.clip((y - y0) / max(y1 - y0, 1e-3), 0, 1)
     t = t * t * (3 - 2 * t)
-    lo = np.array(green) * 0.55
-    hi = np.minimum(np.array(green) * 1.15, 1.0)
+    # `green` is the sunlit top in sRGB; the underside goes to a deep olive like the reference trees.
+    lo = np.array(green) * 0.5
+    hi = np.minimum(np.array(green) * 1.06, 1.0)
     rgb = lo[None, :] * (1 - t[:, None]) + hi[None, :] * t[:, None]
-    srgb = np.clip(rgb ** (1 / 2.2), 0, 1)
+    srgb = np.clip(rgb, 0, 1)
     rgba = np.column_stack([srgb * 255, np.full(len(y), 255)]).astype(np.uint8)
     mesh.visual = trimesh.visual.ColorVisuals(mesh, vertex_colors=rgba)
 
@@ -94,9 +95,9 @@ def bush(name, seed, green):
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    tree("tree_a", 1, (0.56, 0.60, 0.31))
-    tree("tree_b", 7, (0.45, 0.55, 0.26), height=4.8, spread=3.4, puffs=6)
-    tree("tree_c", 13, (0.62, 0.66, 0.36), height=3.8, spread=2.6, puffs=4, trunk_h=2.2)
-    bush("bush_a", 21, (0.50, 0.58, 0.30))
+    tree("tree_a", 1, (0.60, 0.65, 0.33))
+    tree("tree_b", 7, (0.52, 0.60, 0.29), height=4.8, spread=3.4, puffs=6)
+    tree("tree_c", 13, (0.66, 0.68, 0.36), height=3.8, spread=2.6, puffs=4, trunk_h=2.2)
+    bush("bush_a", 21, (0.56, 0.63, 0.30))
     for f in sorted(os.listdir(OUT)):
         print(f, os.path.getsize(os.path.join(OUT, f)))

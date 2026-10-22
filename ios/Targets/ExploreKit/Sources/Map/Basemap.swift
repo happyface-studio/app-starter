@@ -73,6 +73,30 @@ final class Basemap {
             patchPlainBuildings(&layers, at: i, palette)
         }
         style["layers"] = layers
+        patchDaylight(&style)
+    }
+
+    /// Standard's day light is 80% flat ambient with a weak sun almost overhead, which washes the
+    /// toy look out. Use a lower, stronger sun by day so walls and tree crowns get real shading.
+    /// Other presets keep Standard's values.
+    private static func patchDaylight(_ style: inout [String: Any]) {
+        guard var lights = style["lights"] as? [[String: Any]] else { return }
+        func byDay(_ day: Any, _ other: Any?) -> Any {
+            ["match", ["config", "lightPreset"], "day", day, other ?? day] as [Any]
+        }
+        for i in lights.indices {
+            guard var props = lights[i]["properties"] as? [String: Any] else { continue }
+            switch lights[i]["type"] as? String {
+            case "ambient":
+                props["intensity"] = byDay(0.58, props["intensity"])
+            case "directional":
+                props["intensity"] = byDay(0.55, props["intensity"])
+                props["direction"] = byDay(["literal", [205, 42]] as [Any], props["direction"])
+            default: break
+            }
+            lights[i]["properties"] = props
+        }
+        style["lights"] = lights
     }
 
     /// Buildings without façade data use a plain extrusion layer with no roof colour and no
