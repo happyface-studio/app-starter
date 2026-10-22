@@ -24,10 +24,6 @@ struct FacadeTile: MapStyleContent {
         return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
             UIColor(hex: p.roof ?? p.buildings).setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
-            UIColor(white: 1, alpha: 0.06).setFill()
-            for y in stride(from: 0.0, to: size.height, by: 1.0) {
-                ctx.fill(CGRect(x: 0, y: y, width: size.width, height: 0.33))
-            }
             let dormer = CGRect(x: 4.0, y: 1.67, width: 2.33, height: 2.67)
             UIColor(hex: p.buildings).setFill()
             let pediment = UIBezierPath()
