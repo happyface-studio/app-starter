@@ -190,17 +190,21 @@ struct LivingLayers: MapStyleContent {
             .modelScale(Self.toy(1.15, 1.0)).modelRotation(Exp(.get) { "r" })
             .modelCastShadows(true).modelReceiveShadows(true)
 
+        // Zoom curves must be top-level, so boats and ducks get a layer each instead of a match.
         ModelLayer(id: "river", source: "river")
             .slot(.middle).minZoom(14.5)
+            .filter(Exp(.neq) { Exp(.get) { "m" }; "duck" })
             .modelId(Exp(.get) { "m" }).modelType(.common3d)
-            .modelScale(Exp(.match) {
-                Exp(.get) { "m" }
-                "duck"
-                Self.toy(5, 3.5)
-                Self.toy(1.2, 1.0)
-            })
+            .modelScale(Self.toy(1.2, 1.0))
             .modelRotation(Exp(.get) { "r" })
             .modelCastShadows(true)
+
+        ModelLayer(id: "river-ducks", source: "river")
+            .slot(.middle).minZoom(15.5)
+            .filter(Exp(.eq) { Exp(.get) { "m" }; "duck" })
+            .modelId("duck").modelType(.common3d)
+            .modelScale(Self.toy(5, 3.5))
+            .modelRotation(Exp(.get) { "r" })
 
         ModelLayer(id: SmallTouches.pigeonLayer, source: SmallTouches.pigeonSource)
             .slot(.middle).minZoom(16)
