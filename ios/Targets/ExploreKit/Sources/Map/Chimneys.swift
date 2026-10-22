@@ -1,4 +1,5 @@
 import MapboxMaps
+import simd
 import UIKit
 
 /// Chimney stacks with terracotta pots on the mansard roofs of plain buildings. They are worked out
@@ -51,8 +52,13 @@ final class Chimneys {
         }
         func box(_ c: SIMD2<Double>, _ u: SIMD2<Double>, _ w: Double, _ d: Double, base: Double, top: Double, kind: String) {
             let v = SIMD2(-u.y, u.x)
-            let ring = [c - u * w / 2 - v * d / 2, c + u * w / 2 - v * d / 2, c + u * w / 2 + v * d / 2, c - u * w / 2 + v * d / 2]
-            var f = Feature(geometry: .polygon(Polygon([(ring + [ring[0]]).map(coord)])))
+            let du: SIMD2<Double> = u * (w / 2), dv: SIMD2<Double> = v * (d / 2)
+            let p0: SIMD2<Double> = c - du - dv
+            let p1: SIMD2<Double> = c + du - dv
+            let p2: SIMD2<Double> = c + du + dv
+            let p3: SIMD2<Double> = c - du + dv
+            let ring: [CLLocationCoordinate2D] = [p0, p1, p2, p3, p0].map(coord)
+            var f = Feature(geometry: .polygon(Polygon([ring])))
             f.properties = ["k": .string(kind), "b": .number(base), "h": .number(top)]
             out.append(f)
         }
@@ -69,7 +75,8 @@ final class Chimneys {
             var pts = poly.outerRing.coordinates.map(local)
             if pts.count > 1, pts.first == pts.last { pts.removeLast() }
             guard pts.count >= 4 else { continue }
-            let centre = pts.reduce(SIMD2<Double>(0, 0), +) / Double(pts.count)
+            let sum: SIMD2<Double> = pts.reduce(SIMD2<Double>(0, 0), +)
+            let centre: SIMD2<Double> = sum / Double(pts.count)
             var area = 0.0
             for i in pts.indices { let a = pts[i], c = pts[(i + 1) % pts.count]; area += a.x * c.y - c.x * a.y }
             guard abs(area / 2) > 60 else { continue }
@@ -78,22 +85,25 @@ final class Chimneys {
             var stacks = 0
             for i in pts.indices where stacks < 8 {
                 let p = pts[i], a = pts[(i + pts.count - 1) % pts.count], c = pts[(i + 1) % pts.count]
-                let e1 = simd_normalize(p - a), e2 = simd_normalize(c - p)
+                let e1: SIMD2<Double> = simd_normalize(p - a), e2: SIMD2<Double> = simd_normalize(c - p)
                 guard simd_length(p - a) > 4, simd_length(c - p) > 4 else { continue }
                 let corner = abs(e1.x * e2.y - e1.y * e2.x) > 0.6
                 if corner {
-                    let inward = simd_normalize(centre - p)
-                    box(p + inward * 1.6, e2, 1.1, 0.7, base: h - 0.5, top: h + 1.5, kind: "stack")
-                    box(p + inward * 1.6 + e2 * 0.25, e2, 0.24, 0.24, base: h + 1.5, top: h + 1.95, kind: "pot")
-                    box(p + inward * 1.6 - e2 * 0.25, e2, 0.24, 0.24, base: h + 1.5, top: h + 1.95, kind: "pot")
+                    let inward: SIMD2<Double> = simd_normalize(centre - p)
+                    let s0: SIMD2<Double> = p + inward * 1.6
+                    let side: SIMD2<Double> = e2 * 0.25
+                    box(s0, e2, 1.1, 0.7, base: h - 0.5, top: h + 1.5, kind: "stack")
+                    box(s0 + side, e2, 0.24, 0.24, base: h + 1.5, top: h + 1.95, kind: "pot")
+                    box(s0 - side, e2, 0.24, 0.24, base: h + 1.5, top: h + 1.95, kind: "pot")
                     stacks += 1
                 }
                 let len = simd_length(c - p)
                 if len > 16 {
                     let n = Int(len / 11)
-                    let inward = SIMD2(-e2.y, e2.x) * (area > 0 ? 1 : -1)
+                    let inward: SIMD2<Double> = SIMD2(-e2.y, e2.x) * (area > 0 ? 1.0 : -1.0)
                     for k in 1..<max(n, 2) where stacks < 8 {
-                        let q = p + e2 * (len * Double(k) / Double(n)) + inward * 1.3
+                        let along: Double = len * Double(k) / Double(n)
+                        let q: SIMD2<Double> = p + e2 * along + inward * 1.3
                         box(q, e2, 0.9, 0.6, base: h - 0.5, top: h + 1.3, kind: "stack")
                         box(q, e2, 0.24, 0.24, base: h + 1.3, top: h + 1.7, kind: "pot")
                         stacks += 1
