@@ -32,10 +32,10 @@ struct CloudShadows: MapStyleContent {
     private var opacity: Double {
         guard mood == .day || mood == .dawn || mood == .dusk else { return 0 }
         return switch sky {
-        case .clear: 0.07
-        case .partly: 0.14
-        case .cloudy, .fog: 0.09
-        default: 0.06
+        case .clear: 0.12
+        case .partly: 0.24
+        case .cloudy, .fog: 0.16
+        default: 0.1
         }
     }
 
@@ -49,7 +49,7 @@ struct CloudShadows: MapStyleContent {
             .circlePitchScale(.map)
             .circleTranslateAnchor(.map)
             .circleColor(StyleColor(UIColor(red: 0.10, green: 0.12, blue: 0.26, alpha: 1)))
-            .circleBlur(1)
+            .circleBlur(0.85)
             .circleOpacity(opacity)
             .circleOpacityTransition(StyleTransition(duration: 3, delay: 0))
             .circleEmissiveStrength(1)
@@ -80,7 +80,7 @@ final class CloudDrift: NSObject {
     nonisolated static let puffs: FeatureCollection = {
         var rng = SeededRandom(seed: 7)
         var pattern: [(x: Double, y: Double, r: Double)] = []
-        for _ in 0..<7 {
+        for _ in 0..<15 {
             let cx = rng.next() * tile, cy = rng.next() * tile
             for _ in 0..<(6 + Int(rng.next() * 5)) {
                 pattern.append((cx + (rng.next() - 0.5) * 260, cy + (rng.next() - 0.5) * 150, 70 + rng.next() * 90))
