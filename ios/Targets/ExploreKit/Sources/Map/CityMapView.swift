@@ -89,6 +89,12 @@ struct CityMapView: View {
             TrafficSim.shared.start(map: proxy.map)
             CloudDrift.shared.start(map: proxy.map)
             LivingCity.shared.start(map: proxy.map)
+            // Performance check: `-perfOrbit YES` slowly turns the camera half a circle.
+            if UserDefaults.standard.bool(forKey: "perfOrbit"), let camera = proxy.camera, let map = proxy.map {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                    camera.ease(to: CameraOptions(bearing: map.cameraState.bearing + 180), duration: 12)
+                }
+            }
             if LandmarkMask.isEnabled {
                 LandmarkMask.run(proxy: proxy)
             } else if LandmarkDump.isEnabled, let map = proxy.map {
