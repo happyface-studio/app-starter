@@ -57,15 +57,15 @@ final class CloudDrift: NSObject {
     static let shared = CloudDrift()
 
     /// Side of one cloud tile in metres; the image spans 2x2 tiles around the city.
-    static let tile = 6000.0
-    private static let center = (lat: 50.112, lon: 8.68)
+    nonisolated static let tile = 6000.0
+    nonisolated private static let center = (lat: 50.112, lon: 8.68)
 
     private weak var map: MapboxMap?
     private var link: CADisplayLink?
     private var offset = SIMD2<Double>(0, 0)
     private var last: CFTimeInterval = 0
 
-    static func corners(offset: SIMD2<Double>) -> [[Double]] {
+    nonisolated static func corners(offset: SIMD2<Double>) -> [[Double]] {
         let mLat = 111_320.0, mLon = 111_320.0 * cos(center.lat * .pi / 180)
         let half = tile
         func c(_ x: Double, _ y: Double) -> [Double] {
