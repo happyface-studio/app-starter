@@ -212,15 +212,16 @@ final class Basemap {
                 floors[1] = cases
                 layout["building-facade-floors"] = floors
             }
-            // Standard gives most buildings a flat parapet roof, which can't catch light. Low-rise
-            // ones get hipped roofs instead (the renderer has no mansard), so slopes facing away from
-            // the sun darken like the toy-map reference. Mapped pitched roofs stay; towers keep parapets.
+            // Standard gives most buildings a flat parapet roof, which can't catch light. Small low-rise
+            // houses get hipped roofs instead (the renderer has no mansard), so slopes facing away from
+            // the sun darken like the toy-map reference. Mapped pitched roofs stay; big blocks and
+            // towers keep parapets, as in the reference.
             let pitched: [Any] = ["match", ["get", "roof_type"], ["gabled", "hipped", "pyramidal", "skillion"], true, false]
             layout["building-roof-shape"] = [
                 "case",
                 ["all", ["<=", ["get", "area"], 200], [">=", ["get", "height"], 100]], "flat",
                 ["all", ["has", "roof_type"], pitched], ["get", "roof_type"],
-                ["<=", ["get", "height"], 30], "hipped",
+                ["all", ["<=", ["get", "height"], 30], ["<=", ["get", "area"], 600]], "hipped",
                 "parapet",
             ] as [Any]
             layer["layout"] = layout
