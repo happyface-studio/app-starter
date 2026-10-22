@@ -111,7 +111,7 @@ final class CloudDrift: NSObject {
         self.map = map
         guard link == nil else { return }
         let link = CADisplayLink(target: self, selector: #selector(step))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 30, preferred: 20)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 10)
         link.add(to: .main, forMode: .common)
         self.link = link
     }

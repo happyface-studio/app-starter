@@ -79,7 +79,11 @@ struct CityMapView: View {
             )
         )
         .additionalSafeAreaInsets(.bottom, bottomInset)
-        .onStyleLoaded { _ in CloudDrift.shared.styleLoaded() }
+        .onStyleLoaded { _ in
+            CloudDrift.shared.styleLoaded()
+            LivingCity.shared.styleLoaded()
+            TrafficSim.shared.styleLoaded()
+        }
         .onMapLoaded { _ in
             WaterDrift.shared.start(map: proxy.map)
             TrafficSim.shared.start(map: proxy.map)
@@ -91,8 +95,7 @@ struct CityMapView: View {
                 LandmarkDump.run(map: map) { opts in map.setCamera(to: opts) }
             }
         }
-        .onMapTapGesture { context in
-            if SmallTouches.shared.tap(at: context.coordinate) { return }
+        .onMapTapGesture { _ in
             if store.selection != nil { store.selection = nil }
         }
         .ignoresSafeArea()

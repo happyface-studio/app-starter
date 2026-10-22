@@ -2,40 +2,16 @@ import MapboxMaps
 import simd
 import UIKit
 
-/// Pigeons on the Römerberg that scatter when tapped, sparkling fountains, and the odd plane
-/// heading for Frankfurt airport.
+/// Sparkling fountains and the odd plane heading for Frankfurt airport.
 @MainActor
 final class SmallTouches {
     static let shared = SmallTouches()
 
-    static let pigeonSource = "pigeons", pigeonLayer = "pigeons"
     static let sparkleA = "fountain-sparkle-a", sparkleB = "fountain-sparkle-b"
     static let planeSource = "plane", planeLayer = "plane"
 
-    private let flockCentre = CLLocationCoordinate2D(latitude: 50.11040, longitude: 8.68190)
     private let mLat = 111_320.0
     private var mLon: Double { 111_320.0 * cos(50.11 * .pi / 180) }
-
-    // MARK: Pigeons
-
-    private struct Pigeon { var home: SIMD2<Double>; var p: SIMD2<Double>; var heading: Double; var away: SIMD2<Double> }
-    private var flock: [Pigeon] = (0..<18).map { _ in
-        let a = Double.random(in: 0..<(2 * .pi)), r = Double.random(in: 1...9)
-        let p = SIMD2(cos(a) * r, sin(a) * r)
-        let dir = SIMD2(cos(a), sin(a))
-        return Pigeon(home: p, p: p, heading: Double.random(in: 0..<360), away: dir * Double.random(in: 25...45))
-    }
-    /// 0 = on the ground; counts up while scattering, then the flock comes back.
-    private var scatter: Double = -1
-    private var peck: Double = 0
-
-    func tap(at c: CLLocationCoordinate2D) -> Bool {
-        let d = SIMD2((c.longitude - flockCentre.longitude) * mLon, (c.latitude - flockCentre.latitude) * mLat)
-        guard scatter < 0, simd_length(d) < 40 else { return false }
-        scatter = 0
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-        return true
-    }
 
     // MARK: Plane
 
@@ -45,56 +21,27 @@ final class SmallTouches {
     // MARK: Loop
 
     private var clock: Double = 0
-    private var published = false
+    private var sinceSparkle: Double = 0
+    private let planeLive = LiveSource(SmallTouches.planeSource, rate: 15, movingRate: 8)
+
+    func styleLoaded() { planeLive.reset() }
 
     func tick(_ dt: Double, map: MapboxMap) {
         clock += dt
-        let zoom = map.cameraState.zoom
-
-        // Pigeons peck around; when scattered they fly out and up, vanish, and return 25 s later.
-        if zoom >= 16 {
-            peck += dt
-            var z = 0.0, opacity = 1.0
-            if scatter >= 0 {
-                scatter += dt
-                let t = min(scatter / 1.6, 1)
-                z = 30 * t * t
-                opacity = 1 - t
-                for i in flock.indices { flock[i].p = flock[i].home + flock[i].away * t }
-                if scatter > 25 {
-                    scatter = -1
-                    for i in flock.indices { flock[i].p = flock[i].home }
-                    opacity = 1; z = 0
-                }
-            } else if peck > 0.45 {
-                peck = 0
-                for i in flock.indices where Bool.random() {
-                    flock[i].heading += Double.random(in: -50...50)
-                    let step = SIMD2(cos(flock[i].heading * .pi / 180), sin(flock[i].heading * .pi / 180)) * 0.25
-                    let next = flock[i].p + step
-                    if simd_length(next) < 11 { flock[i].p = next }
-                }
-            }
-            let features = flock.map { b -> Feature in
-                var f = Feature(geometry: .point(Point(CLLocationCoordinate2D(
-                    latitude: flockCentre.latitude + b.p.y / mLat, longitude: flockCentre.longitude + b.p.x / mLon))))
-                f.properties = ["r": .array([.number(0), .number(0), .number(-b.heading)])]
-                return f
-            }
-            map.updateGeoJSONSource(withId: Self.pigeonSource, geoJSON: .featureCollection(FeatureCollection(features: features)))
-            try? map.setLayerProperty(for: Self.pigeonLayer, property: "model-translation", value: [0, 0, z])
-            try? map.setLayerProperty(for: Self.pigeonLayer, property: "model-opacity", value: opacity)
-            published = true
-        }
 
         // Fountains shimmer: two droplet rings fading in and out of step.
-        let s = 0.5 + 0.5 * sin(clock * 3.2)
-        try? map.setLayerProperty(for: Self.sparkleA, property: "circle-opacity", value: 0.25 + 0.6 * s)
-        try? map.setLayerProperty(for: Self.sparkleB, property: "circle-opacity", value: 0.25 + 0.6 * (1 - s))
+        sinceSparkle += dt
+        if sinceSparkle > 0.1, map.cameraState.zoom >= 16 {
+            sinceSparkle = 0
+            let s = 0.5 + 0.5 * sin(clock * 3.2)
+            try? map.setLayerProperty(for: Self.sparkleA, property: "circle-opacity", value: 0.25 + 0.6 * s)
+            try? map.setLayerProperty(for: Self.sparkleB, property: "circle-opacity", value: 0.25 + 0.6 * (1 - s))
+        }
 
         // A plane on approach to FRA crosses the city every couple of minutes.
         planeClock += dt
         let phase = planeClock.truncatingRemainder(dividingBy: planeEvery)
+        guard planeLive.due(map) else { return }
         var planes: [Feature] = []
         if phase < planeDuration {
             let start = SIMD2(4200.0, 2600.0), end = SIMD2(-4200.0, -2600.0)   // NE -> SW, towards the airport
@@ -102,10 +49,11 @@ final class SmallTouches {
             let h = atan2(end.y - start.y, end.x - start.x) * 180 / .pi
             var f = Feature(geometry: .point(Point(CLLocationCoordinate2D(
                 latitude: 50.112 + p.y / mLat, longitude: 8.68 + p.x / mLon))))
+            f.identifier = .string("plane")
             f.properties = ["r": .array([.number(0), .number(0), .number(-h)])]
             planes.append(f)
         }
-        map.updateGeoJSONSource(withId: Self.planeSource, geoJSON: .featureCollection(FeatureCollection(features: planes)))
+        planeLive.publish(planes, map: map)
     }
 
     /// Droplet points in a ring around every fountain, alternating between the two sparkle layers.
@@ -129,7 +77,7 @@ final class SmallTouches {
     }()
 }
 
-/// Map layers for people, trams, river life, pigeons, fountains and the plane.
+/// Map layers for people, trams, river life, fountains and the plane.
 struct LivingLayers: MapStyleContent {
     private static func toy(_ z15: Double, _ z18: Double) -> Exp {
         Exp(.interpolate) {
@@ -156,11 +104,10 @@ struct LivingLayers: MapStyleContent {
     }
 
     var body: some MapStyleContent {
-        GeoJSONSource(id: "people").data(Self.empty())
-        GeoJSONSource(id: "trams").data(Self.empty())
-        GeoJSONSource(id: "river").data(Self.empty())
-        GeoJSONSource(id: SmallTouches.pigeonSource).data(Self.empty())
-        GeoJSONSource(id: SmallTouches.planeSource).data(Self.empty())
+        GeoJSONSource(id: "people").data(Self.empty()).maxzoom(16)
+        GeoJSONSource(id: "trams").data(Self.empty()).maxzoom(16)
+        GeoJSONSource(id: "river").data(Self.empty()).maxzoom(16)
+        GeoJSONSource(id: SmallTouches.planeSource).data(Self.empty()).maxzoom(16)
         GeoJSONSource(id: "fountain-a").data(.featureCollection(SmallTouches.sparkles.a))
         GeoJSONSource(id: "fountain-b").data(.featureCollection(SmallTouches.sparkles.b))
 
@@ -175,7 +122,6 @@ struct LivingLayers: MapStyleContent {
         Model(id: "boat_excursion", uri: PuffyTrees.model("boat_excursion"))
         Model(id: "boat_rowing", uri: PuffyTrees.model("boat_rowing"))
         Model(id: "duck", uri: PuffyTrees.model("duck"))
-        Model(id: "pigeon", uri: PuffyTrees.model("pigeon"))
         Model(id: "plane", uri: PuffyTrees.model("plane"))
 
         ModelLayer(id: "people", source: "people")
@@ -205,12 +151,6 @@ struct LivingLayers: MapStyleContent {
             .modelId("duck").modelType(.common3d)
             .modelScale(Self.toy(5, 3.5))
             .modelRotation(Exp(.get) { "r" })
-
-        ModelLayer(id: SmallTouches.pigeonLayer, source: SmallTouches.pigeonSource)
-            .slot(.middle).minZoom(16)
-            .modelId("pigeon").modelType(.common3d)
-            .modelScale(Self.toy(7, 5.5)).modelRotation(Exp(.get) { "r" })
-            .modelCastShadows(true)
 
         ModelLayer(id: SmallTouches.planeLayer, source: SmallTouches.planeSource)
             .slot(.middle).minZoom(12)

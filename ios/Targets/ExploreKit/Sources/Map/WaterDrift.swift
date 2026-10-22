@@ -23,7 +23,7 @@ final class WaterDrift: NSObject {
         guard link == nil else { return }
         tile = UIImage(named: "tex_water", in: exploreBundle, with: nil)?.cgImage
         let link = CADisplayLink(target: self, selector: #selector(step))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 12)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 6, maximum: 10, preferred: 8)
         link.add(to: .main, forMode: .common)
         self.link = link
     }
@@ -35,7 +35,8 @@ final class WaterDrift: NSObject {
         let w = CGFloat(tile.width), h = CGFloat(tile.height)
         offset.x = (offset.x + velocity.dx * dt).truncatingRemainder(dividingBy: w)
         offset.y = (offset.y + velocity.dy * dt).truncatingRemainder(dividingBy: h)
-        guard map.cameraState.zoom >= 12.5, let frame = shifted(tile, by: offset) else { return }
+        // Re-uploading the texture while the user pans competes with rendering; hold the drift then.
+        guard map.cameraState.zoom >= 12.5, !map.isGestureInProgress, let frame = shifted(tile, by: offset) else { return }
         try? map.addImage(frame, id: imageID)
     }
 

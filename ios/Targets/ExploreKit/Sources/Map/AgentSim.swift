@@ -108,6 +108,9 @@ final class AgentSim {
         var kinds: [Kind]
         var dwell: Double = 0
         var density: () -> Double = { 1 }
+        /// Map updates per second (still camera / moving camera).
+        var rate: Double = 15
+        var movingRate: Double = 8
     }
 
     private struct Agent {
@@ -127,22 +130,30 @@ final class AgentSim {
     private var sinceManage = 10.0
     private var area = (minX: 0.0, minY: 0.0, maxX: 0.0, maxY: 0.0)
     private var showing = false
+    private let live: LiveSource
+    /// Lanes in view and their cumulative spawn weights, refreshed only when the view moves.
+    private var visible: [Int] = []
+    private var cumulative: [Double] = []
+    private var visibleKey = ""
 
     init(_ config: Config) {
         self.config = config
         net = LaneNetwork(resource: config.resource)
+        live = LiveSource(config.sourceID, rate: config.rate, movingRate: config.movingRate)
     }
+
+    func styleLoaded() { live.reset() }
 
     func tick(_ dt: Double, map: MapboxMap) {
         guard !net.lanes.isEmpty else { return }
         guard map.cameraState.zoom >= config.minZoom else {
-            if showing { publish(map: map, []); showing = false; agents.removeAll() }
+            if showing { live.clear(map: map); showing = false; agents.removeAll() }
             return
         }
         sinceManage += dt
         if sinceManage > 1 { sinceManage = 0; manage(map) }
         step(dt)
-        publish(map: map, agents)
+        if live.due(map) { publish(map: map, agents) }
         showing = true
     }
 
@@ -154,24 +165,26 @@ final class AgentSim {
             let p = net.sample(a.lane, a.d, offset: 0).p
             return p.x < area.minX - 60 || p.x > area.maxX + 60 || p.y < area.minY - 60 || p.y > area.maxY + 60
         }
-        let visible = net.lanes.indices.filter { i in
-            let l = net.lanes[i]
-            return l.maxX >= area.minX && l.minX <= area.maxX && l.maxY >= area.minY && l.minY <= area.maxY
+        let key = "\(Int(area.minX / 40)),\(Int(area.minY / 40)),\(Int(area.maxX / 40)),\(Int(area.maxY / 40))"
+        if key != visibleKey {
+            visibleKey = key
+            visible = net.lanes.indices.filter { i in
+                let l = net.lanes[i]
+                return l.maxX >= area.minX && l.minX <= area.maxX && l.maxY >= area.minY && l.minY <= area.maxY
+            }
+            var sum = 0.0
+            cumulative = visible.map { sum += net.lanes[$0].weight * net.lanes[$0].length; return sum }
         }
-        guard !visible.isEmpty else { return }
-        let weights = visible.map { net.lanes[$0].weight * net.lanes[$0].length }
-        let total = weights.reduce(0, +)
+        guard let total = cumulative.last, total > 0 else { return }
         let target = min(config.maxAgents, Int(total / config.spacing * config.density()))
         var tries = 0
-        while agents.count < target && tries < 200 {
+        // A few spawns per second, so a fresh view fills in smoothly instead of in one burst.
+        while agents.count < target && tries < 40 {
             tries += 1
-            var r = Double.random(in: 0..<total)
-            var pick = visible[0]
-            for (k, w) in weights.enumerated() {
-                r -= w
-                if r <= 0 { pick = visible[k]; break }
-            }
-            spawn(on: pick)
+            let r = Double.random(in: 0..<total)
+            var lo = 0, hi = cumulative.count - 1
+            while lo < hi { let mid = (lo + hi) / 2; if cumulative[mid] < r { lo = mid + 1 } else { hi = mid } }
+            spawn(on: visible[lo])
         }
     }
 
@@ -240,16 +253,17 @@ final class AgentSim {
         var features: [Feature] = []
         features.reserveCapacity(list.count * 2)
         for a in list {
-            for s in config.kinds[a.kind].sections {
+            for (k, s) in config.kinds[a.kind].sections.enumerated() {
                 var lane = a.lane, d = a.d - s.back
                 if d < 0, let p = a.prev { lane = p; d += net.lanes[p].length }
                 let (pt, h) = net.sample(lane, d, offset: a.offset)
                 var f = Feature(geometry: .point(Point(net.coordinate(pt))))
+                f.identifier = .string("\(a.id)-\(k)")
                 f.properties = ["m": .string(s.model), "r": .array([.number(0), .number(0), .number(-(h + (s.flipped ? 180 : 0)))])]
                 features.append(f)
             }
         }
-        map.updateGeoJSONSource(withId: config.sourceID, geoJSON: .featureCollection(FeatureCollection(features: features)))
+        live.publish(features, map: map)
     }
 }
 
@@ -278,13 +292,13 @@ final class LivingCity: NSObject {
     let people = AgentSim(.init(
         resource: "frankfurt_walks", sourceID: "people", minZoom: 16, spacing: 28, maxAgents: 320,
         kinds: ["red", "blue", "mustard", "green", "white", "lilac"].map(person),
-        density: footfall))
+        density: footfall, rate: 10, movingRate: 5))
 
     let trams = AgentSim(.init(
         resource: "frankfurt_trams", sourceID: "trams", minZoom: 15, spacing: 650, maxAgents: 14,
         kinds: [.init(weight: 1, sections: [("tram_cab", 0, false), ("tram_mid", 10.2, false), ("tram_cab", 20.4, true)],
                       length: 31, offset: 0...0, speed: 0.8...1)],
-        dwell: 12))
+        dwell: 12, rate: 20, movingRate: 10))
 
     let river = AgentSim(.init(
         resource: "frankfurt_river", sourceID: "river", minZoom: 14.5, spacing: 160, maxAgents: 24,
@@ -292,11 +306,16 @@ final class LivingCity: NSObject {
             .init(weight: 1, sections: [("boat_excursion", 0, false)], length: 32, offset: 18...32, speed: 0.9...1.1),
             .init(weight: 2, sections: [("boat_rowing", 0, false)], length: 6, offset: 35...55, speed: 0.6...0.9),
             .init(weight: 4, sections: [("duck", 0, false)], length: 0.6, offset: 52...68, speed: 0.08...0.18),
-        ]))
+        ], rate: 8, movingRate: 4))
 
     private weak var map: MapboxMap?
     private var link: CADisplayLink?
     private var last: CFTimeInterval = 0
+
+    func styleLoaded() {
+        people.styleLoaded(); trams.styleLoaded(); river.styleLoaded()
+        SmallTouches.shared.styleLoaded()
+    }
 
     func start(map: MapboxMap?) {
         self.map = map

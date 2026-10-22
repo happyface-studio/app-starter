@@ -107,6 +107,16 @@ final class TrafficSim: NSObject {
         }
     }
 
+    private let live = LiveSource(TrafficSim.sourceID, rate: 24, movingRate: 12)
+    private var visible: [Int] = []
+    private var cumulative: [Double] = []
+    private var visibleKey = ""
+
+    func styleLoaded() {
+        live.reset()
+        greenGroup = -1   // re-apply the signal state to the fresh layer
+    }
+
     @objc private func tick(_ link: CADisplayLink) {
         let dt = last == 0 ? 0 : min(link.timestamp - last, 0.1)
         last = link.timestamp
@@ -121,7 +131,7 @@ final class TrafficSim: NSObject {
         }
 
         guard map.cameraState.zoom >= 15.3 else {
-            if showing { publish([]); showing = false; cars.removeAll() }
+            if showing { live.clear(map: map); showing = false; cars.removeAll() }
             return
         }
 
@@ -131,7 +141,7 @@ final class TrafficSim: NSObject {
             manage(map)
         }
         step(dt)
-        publish(cars)
+        if live.due(map) { publish(cars) }
         showing = true
     }
 
@@ -149,24 +159,25 @@ final class TrafficSim: NSObject {
 
         cars.removeAll { !inside(position(of: $0).p, margin: 60) }
 
-        let visible = lanes.indices.filter { i in
-            let l = lanes[i]
-            return l.maxX >= area.minX && l.minX <= area.maxX && l.maxY >= area.minY && l.minY <= area.maxY
+        let key = "\(Int(area.minX / 40)),\(Int(area.minY / 40)),\(Int(area.maxX / 40)),\(Int(area.maxY / 40))"
+        if key != visibleKey {
+            visibleKey = key
+            visible = lanes.indices.filter { i in
+                let l = lanes[i]
+                return l.maxX >= area.minX && l.minX <= area.maxX && l.maxY >= area.minY && l.minY <= area.maxY
+            }
+            var sum = 0.0
+            cumulative = visible.map { sum += lanes[$0].weight * lanes[$0].length; return sum }
         }
-        guard !visible.isEmpty else { return }
-        let weighted = visible.map { lanes[$0].weight * lanes[$0].length }
-        let total = weighted.reduce(0, +)
+        guard let total = cumulative.last, total > 0 else { return }
         let target = min(160, Int(total / 140))
         var tries = 0
-        while cars.count < target && tries < 300 {
+        while cars.count < target && tries < 40 {
             tries += 1
-            var r = Double.random(in: 0..<total)
-            var pick = visible[0]
-            for (k, w) in weighted.enumerated() {
-                r -= w
-                if r <= 0 { pick = visible[k]; break }
-            }
-            spawn(on: pick)
+            let r = Double.random(in: 0..<total)
+            var lo = 0, hi = cumulative.count - 1
+            while lo < hi { let mid = (lo + hi) / 2; if cumulative[mid] < r { lo = mid + 1 } else { hi = mid } }
+            spawn(on: visible[lo])
         }
     }
 
@@ -280,15 +291,17 @@ final class TrafficSim: NSObject {
             f.properties = ["m": .string(c.model), "r": .array([.number(0), .number(0), .number(-h)])]
             return f
         }
-        map.updateGeoJSONSource(withId: Self.sourceID, geoJSON: .featureCollection(FeatureCollection(features: features)))
+        live.publish(features, map: map)
     }
 }
 
 /// Map layer for the simulated vehicles.
 struct Traffic: MapStyleContent {
     var body: some MapStyleContent {
+        // Points re-tile on every update; capping the source zoom keeps that to fewer tile levels.
         GeoJSONSource(id: TrafficSim.sourceID)
             .data(.featureCollection(FeatureCollection(features: [])))
+            .maxzoom(16)
 
         Model(id: "car_red", uri: PuffyTrees.model("car_red"))
         Model(id: "car_blue", uri: PuffyTrees.model("car_blue"))
