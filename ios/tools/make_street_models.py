@@ -8,6 +8,7 @@ signal_red / _green     the lit lens only, so emissive strength applies to the l
 The arm, housing and lenses face +X; the map rotates each instance towards the road.
 """
 
+import math
 import os
 
 import numpy as np
@@ -236,6 +237,115 @@ def plane():
     export("plane", parts)
 
 
+AWNINGS = {"awning_red": (0.80, 0.24, 0.22), "awning_green": (0.24, 0.48, 0.36),
+           "awning_navy": (0.22, 0.28, 0.48), "awning_mustard": (0.88, 0.68, 0.24)}
+STRIPE_WHITE = (0.97, 0.95, 0.90)
+WOOD = (0.55, 0.38, 0.24)
+IRON = (0.16, 0.18, 0.19)
+
+
+def slab(x0, x1, y0, y1, z0, z1, t=0.05):
+    """Thin sloped panel from (x0, z0) at the wall to (x1, z1) at the front, spanning y0..y1."""
+    L = math.hypot(x1 - x0, z1 - z0)
+    m = trimesh.creation.box(extents=(L, y1 - y0, t))
+    m.apply_transform(trimesh.transformations.rotation_matrix(math.atan2(z0 - z1, x1 - x0), (0, 1, 0)))
+    m.apply_translation(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))
+    return m
+
+
+def shopfronts():
+    """Ground-floor shopfront: the origin is the wall at street level and +X points out to the street.
+    awning_*      a striped canopy 3.2 m wide, sloping from 3.4 m at the wall to 2.75 m, 1.4 m out.
+    shop_glow     the shop window only, so it can glow warm at night."""
+    W, n = 3.2, 8
+    for name, rgb in AWNINGS.items():
+        parts = []
+        for i in range(n):
+            y0 = -W / 2 + i * W / n
+            col = rgb if i % 2 == 0 else STRIPE_WHITE
+            parts.append((slab(0.02, 1.4, y0, y0 + W / n, 3.4, 2.75), col))
+            parts.append((box(0.04, W / n, 0.28, (1.4, y0 + W / (2 * n), 2.62)), col))     # valance
+        for y in (-W / 2 + 0.03, W / 2 - 0.03):                                           # side arms
+            parts.append((slab(0.02, 1.38, y - 0.02, y + 0.02, 3.3, 2.78, t=0.04), IRON))
+        parts.append((box(0.06, W + 0.3, 0.5, (0.03, 0, 3.75)), rgb))                        # fascia board
+        export(name, parts)
+    export("shop_glow", [(box(0.04, 2.8, 2.1, (0.05, 0, 1.35)), (1.0, 0.86, 0.60))])
+
+
+def cafe_set():
+    """Two bistro tables with chairs under a cream parasol, about 2.4 m across."""
+    parts = []
+    for y in (-0.8, 0.8):
+        top = cyl(0.36, 0.04, 0.72, 18); top.apply_translation((0, y, 0)); parts.append((top, (0.93, 0.92, 0.88)))
+        leg = cyl(0.03, 0.72); leg.apply_translation((0, y, 0)); parts.append((leg, IRON))
+        for dx in (-0.5, 0.5):
+            seat = box(0.36, 0.36, 0.05, (dx, y, 0.45)); parts.append((seat, WOOD))
+            back = box(0.05, 0.36, 0.42, (dx + (0.18 if dx > 0 else -0.18), y, 0.68)); parts.append((back, WOOD))
+            for lx in (-0.14, 0.14):
+                for ly in (-0.14, 0.14):
+                    parts.append((box(0.04, 0.04, 0.45, (dx + lx, y + ly, 0.22)), IRON))
+    pole = cyl(0.03, 2.3); parts.append((pole, (0.85, 0.83, 0.78)))
+    canopy = trimesh.creation.cone(radius=1.5, height=0.5, sections=10)
+    canopy.apply_translation((0, 0, 2.05)); parts.append((canopy, (0.96, 0.93, 0.84)))
+    export("cafe_set", parts)
+
+
+def bench():
+    """Park bench 1.8 m long, seat facing +X."""
+    parts = []
+    for i in range(3):
+        parts.append((box(0.12, 1.8, 0.05, (0.15 - i * 0.15, 0, 0.45)), WOOD))
+    for i in range(2):
+        parts.append((box(0.04, 1.8, 0.11, (-0.26, 0, 0.62 + i * 0.16)), WOOD))
+    for y in (-0.75, 0.75):
+        parts.append((box(0.5, 0.06, 0.45, (0, y, 0.22)), IRON))
+        parts.append((box(0.05, 0.06, 0.45, (-0.26, y, 0.66)), IRON))
+    export("bench", parts)
+
+
+def bicycle(y, frame_rgb, x=0.0):
+    """A toy bike 1.7 m long along X, at lateral offset y."""
+    parts = []
+    for wx in (-0.55, 0.55):
+        ring = trimesh.creation.annulus(r_min=0.27, r_max=0.33, height=0.05, sections=18)
+        ring.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, (1, 0, 0)))
+        ring.apply_translation((x + wx, y, 0.33))
+        parts.append((ring, TYRE))
+    parts.append((box(1.1, 0.05, 0.05, (x, y, 0.62)), frame_rgb))
+    parts.append((slab(x - 0.55, x + 0.05, y - 0.025, y + 0.025, 0.33, 0.62, t=0.05), frame_rgb))
+    parts.append((box(0.05, 0.05, 0.35, (x - 0.15, y, 0.78)), frame_rgb))
+    parts.append((box(0.22, 0.12, 0.05, (x - 0.15, y, 0.95)), (0.15, 0.15, 0.15)))       # saddle
+    parts.append((box(0.05, 0.05, 0.4, (x + 0.5, y, 0.82)), frame_rgb))
+    parts.append((box(0.06, 0.5, 0.04, (x + 0.5, y, 1.02)), (0.15, 0.15, 0.15)))         # handlebar
+    return parts
+
+
+def bikes():
+    """bike_rack: Sheffield stands with two parked bikes. bike_dock: a rental station with four blue bikes.
+    Both run along X (the map turns them along the kerb)."""
+    rack = []
+    for x in (-1.2, 0, 1.2):
+        rack.append((box(0.05, 0.05, 0.8, (x, -0.35, 0.4)), IRON))
+        rack.append((box(0.05, 0.05, 0.8, (x, 0.35, 0.4)), IRON))
+        rack.append((box(0.05, 0.75, 0.05, (x, 0, 0.8)), IRON))
+    for x, rgb in ((-0.6, (0.80, 0.24, 0.22)), (0.6, (0.25, 0.45, 0.70))):
+        for m, c in bicycle(0, rgb):
+            m.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, (0, 0, 1)))
+            m.apply_translation((x, 0, 0))
+            rack.append((m, c))
+    export("bike_rack", rack)
+    blue = (0.20, 0.45, 0.80)
+    dock = [(box(0.3, 0.3, 1.9, (0, -2.6, 0.95)), blue), (box(0.08, 0.7, 0.9, (0.12, -2.6, 1.3)), (0.95, 0.95, 0.95)),
+            (box(0.2, 4.6, 0.12, (0, -0.3, 0.06)), (0.40, 0.42, 0.45))]
+    for i in range(4):
+        y = -1.6 + i * 1.0
+        for m, c in bicycle(0, blue):
+            m.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, (0, 0, 1)))
+            m.apply_translation((0.0, y, 0))
+            dock.append((m, c))
+    export("bike_dock", dock)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     lamp()
@@ -245,4 +355,8 @@ if __name__ == "__main__":
     tram()
     boats()
     plane()
+    shopfronts()
+    cafe_set()
+    bench()
+    bikes()
     print("ok")
