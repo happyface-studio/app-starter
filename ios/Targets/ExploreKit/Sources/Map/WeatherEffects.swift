@@ -30,10 +30,10 @@ struct CloudShadows: MapStyleContent {
     private var opacity: Double {
         guard mood == .day || mood == .dawn || mood == .dusk else { return 0 }
         return switch sky {
-        case .clear: 0.12
-        case .partly: 0.26
-        case .cloudy, .fog: 0.16
-        default: 0.1
+        case .clear: 0.16
+        case .partly: 0.32
+        case .cloudy, .fog: 0.22
+        default: 0.14
         }
     }
 

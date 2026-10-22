@@ -148,14 +148,14 @@ def clouds():
     shade = (24, 30, 58)
 
     def draw(d, ox, oy):
-        for _ in range(9):   # cloud bodies: clusters of overlapping puffs
+        for _ in range(7):   # cloud bodies: clusters of puffs, with clear sky between them
             cx, cy = ox + random.random() * w, oy + random.random() * h
-            for _ in range(random.randint(5, 9)):
-                r = random.uniform(22, 52)
-                x, y = cx + random.uniform(-60, 60), cy + random.uniform(-34, 34)
-                d.ellipse((x - r * 1.3, y - r, x + r * 1.3, y + r), fill=(*shade, random.randint(60, 110)))
+            for _ in range(random.randint(6, 10)):
+                r = random.uniform(16, 38)
+                x, y = cx + random.uniform(-46, 46), cy + random.uniform(-26, 26)
+                d.ellipse((x - r * 1.3, y - r, x + r * 1.3, y + r), fill=(*shade, 235))
 
-    tile = tiled((w, h), draw, blur=22)
+    tile = tiled((w, h), draw, blur=11)
     big = Image.new("RGBA", (w * 2, h * 2))
     for x in (0, w):
         for y in (0, h):
