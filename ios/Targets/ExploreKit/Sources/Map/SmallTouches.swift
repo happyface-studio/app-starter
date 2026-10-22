@@ -12,7 +12,7 @@ final class SmallTouches {
     static let sparkleA = "fountain-sparkle-a", sparkleB = "fountain-sparkle-b"
     static let planeSource = "plane", planeLayer = "plane"
 
-    private let flockCentre = CLLocationCoordinate2D(latitude: 50.11047, longitude: 8.68215)
+    private let flockCentre = CLLocationCoordinate2D(latitude: 50.11040, longitude: 8.68190)
     private let mLat = 111_320.0
     private var mLon: Double { 111_320.0 * cos(50.11 * .pi / 180) }
 
@@ -181,7 +181,7 @@ struct LivingLayers: MapStyleContent {
         ModelLayer(id: "people", source: "people")
             .slot(.middle).minZoom(16)
             .modelId(Exp(.get) { "m" }).modelType(.common3d)
-            .modelScale(Self.toy(1.9, 1.5)).modelRotation(Exp(.get) { "r" })
+            .modelScale(Self.toy(2.6, 2.0)).modelRotation(Exp(.get) { "r" })
             .modelCastShadows(true).modelReceiveShadows(true)
 
         ModelLayer(id: "trams", source: "trams")
@@ -205,7 +205,7 @@ struct LivingLayers: MapStyleContent {
         ModelLayer(id: SmallTouches.pigeonLayer, source: SmallTouches.pigeonSource)
             .slot(.middle).minZoom(16)
             .modelId("pigeon").modelType(.common3d)
-            .modelScale(Self.toy(4, 3)).modelRotation(Exp(.get) { "r" })
+            .modelScale(Self.toy(7, 5.5)).modelRotation(Exp(.get) { "r" })
             .modelCastShadows(true)
 
         ModelLayer(id: SmallTouches.planeLayer, source: SmallTouches.planeSource)

@@ -276,7 +276,7 @@ final class LivingCity: NSObject {
     }
 
     let people = AgentSim(.init(
-        resource: "frankfurt_walks", sourceID: "people", minZoom: 16, spacing: 55, maxAgents: 220,
+        resource: "frankfurt_walks", sourceID: "people", minZoom: 16, spacing: 28, maxAgents: 320,
         kinds: ["red", "blue", "mustard", "green", "white", "lilac"].map(person),
         density: footfall))
 

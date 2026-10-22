@@ -8,7 +8,7 @@ way[\"highway\"~\"^(footway|pedestrian|path|steps|living_street)$\"]($BBOX);
 way[\"railway\"=\"tram\"]($BBOX);
 node[\"railway\"=\"tram_stop\"]($BBOX);
 node[\"public_transport\"=\"stop_position\"][\"tram\"=\"yes\"]($BBOX);
-way[\"waterway\"=\"river\"][\"name\"=\"Main\"](50.085,8.60,50.125,8.76);
+way[\"waterway\"=\"river\"](50.085,8.60,50.125,8.76);
 node[\"amenity\"=\"fountain\"]($BBOX);
 );out geom;"
 for i in 1 2 3 4 5 6; do
