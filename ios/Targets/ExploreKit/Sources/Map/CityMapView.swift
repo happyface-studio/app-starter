@@ -131,7 +131,13 @@ struct CityMapView: View {
         store.selection = selection
     }
 
+    /// `-camera lat,lon,zoom[,bearing]` starts somewhere else (look tests).
     static var initialViewport: Viewport {
-        .camera(center: Frankfurt.center, zoom: 16.9, bearing: -18, pitch: 58)
+        let v = (UserDefaults.standard.string(forKey: "camera") ?? "").split(separator: ",").compactMap { Double($0) }
+        if v.count >= 3 {
+            return .camera(center: CLLocationCoordinate2D(latitude: v[0], longitude: v[1]), zoom: v[2],
+                           bearing: v.count > 3 ? v[3] : -18, pitch: 58)
+        }
+        return .camera(center: Frankfurt.center, zoom: 16.9, bearing: -18, pitch: 58)
     }
 }
