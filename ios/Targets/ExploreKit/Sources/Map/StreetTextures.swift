@@ -59,65 +59,8 @@ struct StreetTextures: MapStyleContent {
         }
     }
 
-    private static let roadClasses = [
-        "motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link",
-        "secondary", "secondary_link", "tertiary", "tertiary_link", "street", "street_limited",
-    ]
-
-    /// Standard's road width from zoom 15 up.
-    private static var roadWidth: Exp {
-        Exp(.interpolate) {
-            Exp(.exponential) { 1.5 }
-            Exp(.zoom)
-            12
-            Exp(.match) {
-                Exp(.get) { "class" }
-                ["motorway", "trunk"]
-                3.2
-                ["primary"]
-                3
-                ["secondary", "tertiary"]
-                2.2
-                ["motorway_link", "trunk_link"]
-                0.8
-                ["street", "street_limited"]
-                0.5
-                ["primary_link", "secondary_link", "tertiary_link"]
-                0.4
-                0
-            }
-            18
-            Exp(.match) {
-                Exp(.get) { "class" }
-                ["motorway", "trunk"]
-                30
-                ["primary"]
-                28
-                ["secondary", "tertiary"]
-                26
-                ["motorway_link", "trunk_link", "street", "street_limited"]
-                20
-                ["primary_link", "secondary_link", "tertiary_link"]
-                18
-                10
-            }
-            22
-            Exp(.match) {
-                Exp(.get) { "class" }
-                ["motorway", "trunk"]
-                300
-                ["primary"]
-                280
-                ["secondary", "tertiary"]
-                260
-                ["motorway_link", "trunk_link", "street", "street_limited"]
-                200
-                ["primary_link", "secondary_link", "tertiary_link"]
-                180
-                100
-            }
-        }
-    }
+    private static let roadClasses = RoadWidth.drivable
+    private static var roadWidth: Exp { RoadWidth.exp() }
 
     var body: some MapStyleContent {
         if let cobbles = Self.image("tex_cobbles"), let slabs = Self.image("tex_slabs"), let grain = Self.image("tex_grain") {
