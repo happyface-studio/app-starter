@@ -75,7 +75,7 @@ struct StreetDetail: MapStyleContent {
                     0.1
                     1.4
                     0.4
-                    0.35
+                    0.1
                 })
             layer("cafe-tables", kind: "cafe", model: "cafe_set", scale: Self.toy(1.4, 1.2), minZoom: 16.2)
             layer("benches", kind: "bench", model: "bench", scale: Self.toy(1.6, 1.3), minZoom: 16.4)

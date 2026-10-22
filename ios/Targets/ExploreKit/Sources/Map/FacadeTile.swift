@@ -8,8 +8,40 @@ struct FacadeTile: MapStyleContent {
 
     static func imageID(_ p: CityPalette) -> String { "facade-\(p.id)" }
 
+    static func mansardID(_ p: CityPalette) -> String { "mansard-\(p.id)" }
+
     var body: some MapStyleContent {
         StyleImage(id: Self.imageID(palette), image: Self.render(palette))
+        StyleImage(id: Self.mansardID(palette), image: Self.mansard(palette))
+    }
+
+    /// Slate with one cream dormer per bay, for the mansard storey of plain buildings.
+    static func mansard(_ p: CityPalette) -> UIImage {
+        let size = CGSize(width: 16.0 / 3, height: 16.0 / 3)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            UIColor(hex: p.roof ?? p.buildings).setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            // slate courses
+            UIColor(white: 0, alpha: 0.07).setFill()
+            for y in stride(from: 0.33, to: size.height, by: 1.0) {
+                ctx.fill(CGRect(x: 0, y: y, width: size.width, height: 0.33))
+            }
+            let dormer = CGRect(x: 1.33, y: 1.0, width: 2.67, height: 3.33)
+            UIColor(hex: p.buildings).setFill()
+            ctx.fill(dormer)
+            let pediment = UIBezierPath()
+            pediment.move(to: CGPoint(x: dormer.minX - 0.33, y: dormer.minY + 0.34))
+            pediment.addLine(to: CGPoint(x: dormer.midX, y: dormer.minY - 0.67))
+            pediment.addLine(to: CGPoint(x: dormer.maxX + 0.33, y: dormer.minY + 0.34))
+            pediment.close()
+            pediment.fill()
+            glass(p).setFill()
+            ctx.fill(dormer.insetBy(dx: 0.5, dy: 0.5).offsetBy(dx: 0, dy: 0.17))
+            UIColor(white: 0, alpha: 0.18).setFill()
+            ctx.fill(CGRect(x: dormer.minX, y: dormer.maxY, width: dormer.width, height: 0.34))
+        }
     }
 
     static func render(_ p: CityPalette) -> UIImage {

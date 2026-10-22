@@ -1,4 +1,4 @@
-import MapboxMaps
+@_spi(Experimental) import MapboxMaps
 import UIKit
 
 /// Buildings Standard draws without façades, redrawn with the palette's window pattern on the
@@ -15,6 +15,23 @@ struct PlainBuildings: MapStyleContent {
     }
 
     private static let height = Exp(.number) { Exp(.get) { "height" } }
+
+    /// Houses and Gründerzeit blocks (10–32 m) get a slate mansard storey with dormers as their top floor.
+    static let mansardDepth = 3.2
+    private static var hasMansard: Exp {
+        Exp(.all) {
+            Exp(.gte) { Exp(.number) { Exp(.get) { "height" } }; 10 }
+            Exp(.lte) { Exp(.number) { Exp(.get) { "height" } }; 32 }
+        }
+    }
+
+    private static var wallTop: Exp {
+        Exp(.switchCase) {
+            hasMansard
+            Exp(.subtract) { height; mansardDepth }
+            height
+        }
+    }
 
     private static var base: Exp {
         Exp(.max) { 0; Exp(.coalesce) { Exp(.get) { "min_height" }; 0 } }
@@ -45,11 +62,25 @@ struct PlainBuildings: MapStyleContent {
             .minZoom(15)
             .filter(Self.extruded)
             .fillExtrusionPattern(FacadeTile.imageID(palette))
-            .fillExtrusionHeight(Self.height)
+            .fillExtrusionHeight(Self.wallTop)
             .fillExtrusionBase(Self.base)
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionAmbientOcclusionIntensity(0.3)
+            .fillExtrusionCastShadows(true)
+
+        FillExtrusionLayer(id: "plain-buildings-mansard", source: Self.source)
+            .sourceLayer("building")
+            .slot(.middle)
+            .minZoom(15)
+            .filter(Exp(.all) { Self.extruded; Self.hasMansard })
+            .fillExtrusionPattern(FacadeTile.mansardID(palette))
+            .fillExtrusionBase(Self.wallTop)
+            .fillExtrusionHeight(Self.height)
+            .fillExtrusionEdgeRadius(1)
+            .fillExtrusionRoundedRoof(true)
+            .fillExtrusionOpacity(Self.fadeIn)
+            .fillExtrusionVerticalGradient(false)
             .fillExtrusionCastShadows(true)
 
         FillExtrusionLayer(id: "plain-buildings-roof", source: Self.source)
