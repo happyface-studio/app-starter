@@ -32,6 +32,7 @@ struct CityMapView: View {
                 PastelBlocks()
             }
             if !LandmarkMask.isEnabled {
+                GroundTextures(palette: store.palette)
                 FacadeTile(palette: store.palette)
                 PlainBuildings(palette: store.palette)
                 StreetTextures()
