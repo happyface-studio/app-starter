@@ -170,5 +170,5 @@ if __name__ == "__main__":
     grain()
     grass()
     water()
-    clouds()
+
     print("ok")
