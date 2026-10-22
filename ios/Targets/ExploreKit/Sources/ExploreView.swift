@@ -46,7 +46,7 @@ public struct ExploreView: View {
             let selection: Selection = store.places.contains { $0.id == id } ? .place(id) : .event(id)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { store.selection = selection }
         }
-        if let mood = defaults.string(forKey: "mood").flatMap(MapMood.init(rawValue:)) { store.mood = mood }
+        if let mood = defaults.string(forKey: "mood").flatMap(MapMood.init(rawValue:)) { store.manualMood = mood }
         if let f = defaults.string(forKey: "filter") {
             store.filter = Filter.all.first { $0.id == f }
         }
@@ -112,9 +112,10 @@ struct MapControls: View {
     var body: some View {
         VStack(spacing: 0) {
             Menu {
-                Picker("Light", selection: $store.mood) {
+                Picker("Light", selection: $store.manualMood) {
+                    Label("Now in Frankfurt", systemImage: "clock").tag(MapMood?.none)
                     ForEach(MapMood.allCases) { mood in
-                        Label(mood.title, systemImage: mood.symbol).tag(mood)
+                        Label(mood.title, systemImage: mood.symbol).tag(MapMood?.some(mood))
                     }
                 }
                 Picker("Style", selection: $store.palette) {

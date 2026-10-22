@@ -64,7 +64,9 @@ final class ExploreStore {
     var query = ""
     var filter: Filter?
     var selection: Selection?
-    var mood: MapMood = .day
+    /// `nil` follows the real Frankfurt time of day (`LiveConditions`).
+    var manualMood: MapMood?
+    var mood: MapMood { manualMood ?? LiveConditions.shared.mood }
     var palette = CityPalette.named(UserDefaults.standard.string(forKey: "palette")) ?? .mayfair {
         didSet { UserDefaults.standard.set(palette.id, forKey: "palette") }
     }

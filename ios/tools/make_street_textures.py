@@ -8,6 +8,8 @@ Drawn at @2x; the map tints nothing, it lays these over the palette colours.
   tex_grain    faint asphalt grain with a few pebbles (roads)
   tex_grass    mottled lawn with fine blades (parks, grass)
   tex_water    soft light mottling with sparse wave marks (rivers, lakes)
+  clouds       soft cloud-shadow blobs, a seamless 512 px tile repeated 2x2 into one 1024 px image
+               (map-anchored, drifted by CloudShadows; not a pattern)
 """
 
 import os
@@ -141,6 +143,26 @@ def water():
     base.save(os.path.join(OUT, "tex_water@2x.png"))
 
 
+def clouds():
+    w = h = 512
+    shade = (24, 30, 58)
+
+    def draw(d, ox, oy):
+        for _ in range(9):   # cloud bodies: clusters of overlapping puffs
+            cx, cy = ox + random.random() * w, oy + random.random() * h
+            for _ in range(random.randint(5, 9)):
+                r = random.uniform(22, 52)
+                x, y = cx + random.uniform(-60, 60), cy + random.uniform(-34, 34)
+                d.ellipse((x - r * 1.3, y - r, x + r * 1.3, y + r), fill=(*shade, random.randint(60, 110)))
+
+    tile = tiled((w, h), draw, blur=22)
+    big = Image.new("RGBA", (w * 2, h * 2))
+    for x in (0, w):
+        for y in (0, h):
+            big.paste(tile, (x, y))
+    big.save(os.path.join(OUT, "..", "clouds.png"))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     cobbles()
@@ -148,4 +170,5 @@ if __name__ == "__main__":
     grain()
     grass()
     water()
+    clouds()
     print("ok")
