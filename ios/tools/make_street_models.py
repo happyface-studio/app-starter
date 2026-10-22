@@ -97,8 +97,70 @@ def signal():
     lens(pole_h + 0.2, (0.25, 0.95, 0.45), "signal_green")
 
 
+GLASS_DARK = (0.24, 0.27, 0.38)
+TYRE = (0.12, 0.12, 0.13)
+
+
+def rounded_box(sx, sy, sz, at, r=0.18):
+    """Box with softened vertical edges (a 'toy' look), Z-up like the other primitives."""
+    core = trimesh.creation.box(extents=(sx - 2 * r, sy, sz))
+    side = trimesh.creation.box(extents=(sx, sy - 2 * r, sz))
+    parts = [core, side]
+    for cx in (-(sx / 2 - r), sx / 2 - r):
+        for cy in (-(sy / 2 - r), sy / 2 - r):
+            c = trimesh.creation.cylinder(radius=r, height=sz, sections=10)
+            c.apply_translation((cx, cy, 0))
+            parts.append(c)
+    m = trimesh.util.concatenate(parts)
+    m.apply_translation(at)
+    return m
+
+
+def wheels(length, width, r=0.34, inset=0.75):
+    out = []
+    for x in (length / 2 - inset, -(length / 2 - inset)):
+        for y in (width / 2 - 0.12, -(width / 2 - 0.12)):
+            w = trimesh.creation.cylinder(radius=r, height=0.24, sections=14)
+            w.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, (1, 0, 0)))
+            w.apply_translation((x, y, r))
+            out.append((w, TYRE))
+    return out
+
+
+def car(name, paint_rgb, roof_sign=None):
+    L, W = 4.2, 1.8
+    parts = wheels(L, W)
+    parts.append((rounded_box(L, W, 0.62, (0, 0, 0.62), r=0.32), paint_rgb))           # body
+    parts.append((rounded_box(2.3, W - 0.18, 0.56, (-0.25, 0, 1.2), r=0.28), GLASS_DARK))  # glasshouse
+    parts.append((rounded_box(2.1, W - 0.26, 0.08, (-0.25, 0, 1.5), r=0.24), paint_rgb))   # roof
+    if roof_sign:
+        parts.append((box(0.5, 0.28, 0.18, (-0.25, 0, 1.63)), roof_sign))
+    export(name, parts)
+
+
+def bus(name, body_rgb, band_rgb):
+    L, W = 11.0, 2.5
+    parts = wheels(L, W, r=0.48, inset=2.2)
+    parts.append((rounded_box(L, W, 2.4, (0, 0, 1.75), r=0.4), body_rgb))
+    parts.append((rounded_box(L - 0.3, W + 0.02, 0.85, (0, 0, 2.2), r=0.38), GLASS_DARK))  # window band
+    parts.append((rounded_box(L - 0.1, W + 0.03, 0.22, (0, 0, 1.05), r=0.39), band_rgb))
+    parts.append((box(0.06, W - 0.4, 1.0, (L / 2 + 0.01, 0, 2.15)), GLASS_DARK))            # windscreen
+    export(name, parts)
+
+
+def vehicles():
+    for name, rgb in {
+        "car_red": (0.78, 0.27, 0.23), "car_blue": (0.29, 0.43, 0.71), "car_white": (0.95, 0.94, 0.91),
+        "car_yellow": (0.91, 0.76, 0.29), "car_green": (0.37, 0.60, 0.42), "car_black": (0.18, 0.18, 0.21),
+    }.items():
+        car(name, rgb)
+    car("car_taxi", (0.94, 0.90, 0.78), roof_sign=(0.98, 0.84, 0.30))
+    bus("bus", (0.96, 0.95, 0.92), (0.80, 0.18, 0.20))
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     lamp()
     signal()
+    vehicles()
     print("ok")

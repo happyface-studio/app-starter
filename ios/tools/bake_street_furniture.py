@@ -5,7 +5,8 @@
 Writes Resources/frankfurt_street.geojson: points with
   kind  "lamp" | "signal"
   r     model-rotation [0, 0, deg] turning the model's +X towards the road (lamps) / oncoming traffic (signals)
-  lit   "red" | "green" for signals (static for now; perpendicular approaches get opposite states)
+  lit   "red" | "green" for signals before the cycle starts
+  g     signal group 1 | 2; the app turns one group green at a time (see TrafficSim)
 
 Lamps: OSM street_lamp nodes where mapped; elsewhere one every ~30 m along the kerb, alternating sides,
 skipping spots inside buildings or too close to another lamp or a signal.
@@ -162,8 +163,8 @@ def main():
                 if any(True for _ in taken.near(x, y, 3.0)) or inside_building(buildings, x, y):
                     continue
                 rot = heading(-ux, -uy)                   # lenses (+X) look back at the traffic
-                lit = "green" if (heading(ux, uy) % 180) < 90 else "red"
-                emit(x, y, "signal", rot, lit=lit)
+                group = 1 if (heading(ux, uy) % 180) < 90 else 2   # same grouping as bake_road_graph.py
+                emit(x, y, "signal", rot, lit="green" if group == 1 else "red", g=group)
     n_signals = len(features)
 
     # road centre-line segments, for nudging mapped lamps out of the carriageway

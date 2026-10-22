@@ -38,6 +38,7 @@ struct CityMapView: View {
                 StreetTextures()
                 PuffyTrees()
                 StreetFurniture(mood: store.mood)
+                Traffic()
             }
 
             ForEvery(LandmarkMask.isEnabled ? [] : store.visiblePlaces) { place in
@@ -77,6 +78,7 @@ struct CityMapView: View {
         .additionalSafeAreaInsets(.bottom, bottomInset)
         .onMapLoaded { _ in
             WaterDrift.shared.start(map: proxy.map)
+            TrafficSim.shared.start(map: proxy.map)
             if LandmarkMask.isEnabled {
                 LandmarkMask.run(proxy: proxy)
             } else if LandmarkDump.isEnabled, let map = proxy.map {
