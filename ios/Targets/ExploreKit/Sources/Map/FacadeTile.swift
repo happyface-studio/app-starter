@@ -44,6 +44,30 @@ struct FacadeTile: MapStyleContent {
         }
     }
 
+    static func render(_ p: CityPalette) -> UIImage {
+        // Patterns tile in screen points at the current zoom, so the bay is small. 16 px at @3x:
+        // seamless tiling wants power-of-two pixel sizes.
+        let size = CGSize(width: 16.0 / 3, height: 16.0 / 3)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            let wall = UIColor(hex: p.buildings)
+            wall.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+
+            let frame = CGRect(x: 1.5, y: 1.0, width: 2.33, height: 3.0)
+            UIColor(white: 1, alpha: 0.45).setFill()
+            ctx.fill(frame.insetBy(dx: -0.35, dy: -0.35))
+            glass(p).setFill()
+            ctx.fill(frame)
+            UIColor(white: 1, alpha: 0.35).setFill()
+            ctx.fill(CGRect(x: frame.minX, y: frame.midY - 0.17, width: frame.width, height: 0.34))
+            
+            UIColor(white: 0, alpha: 0.10).setFill()
+            ctx.fill(CGRect(x: frame.minX - 0.35, y: frame.maxY + 0.35, width: frame.width + 0.7, height: 0.35))
+        }
+    }
+
     /// Middle of the palette's glass range, HSL to RGB.
     private static func glass(_ p: CityPalette) -> UIColor {
         let h = (p.glass.hue.lowerBound + p.glass.hue.upperBound) / 2 / 360
