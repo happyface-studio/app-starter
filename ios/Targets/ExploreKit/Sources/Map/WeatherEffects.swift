@@ -19,7 +19,7 @@ struct WeatherEffects: MapStyleContent {
     }
 }
 
-/// Soft cloud shadows: one map-anchored image (a seamless tile repeated 2x2) that drifts with the
+/// Soft cloud shadows: one map-anchored image (a seamless tile repeated 4x4) that drifts with the
 /// live wind. The offset wraps every tile width, which is invisible because the neighbours match.
 struct CloudShadows: MapStyleContent {
     var mood: MapMood
@@ -57,8 +57,9 @@ struct CloudShadows: MapStyleContent {
 final class CloudDrift: NSObject {
     static let shared = CloudDrift()
 
-    /// Side of one cloud tile in metres; the image spans 2x2 tiles around the city.
-    nonisolated static let tile = 6000.0
+    /// Side of one cloud tile in metres (clouds come out ~300 m across); the image spans 4x4 tiles
+    /// around the city centre, so it covers the whole simulated area while it drifts.
+    nonisolated static let tile = 2000.0
     nonisolated private static let center = (lat: 50.112, lon: 8.68)
 
     private weak var map: MapboxMap?
@@ -74,7 +75,7 @@ final class CloudDrift: NSObject {
 
     nonisolated static func corners(offset: SIMD2<Double>) -> [[Double]] {
         let mLat = 111_320.0, mLon = 111_320.0 * cos(center.lat * .pi / 180)
-        let half = tile
+        let half = tile * 2
         func c(_ x: Double, _ y: Double) -> [Double] {
             [center.lon + (x + offset.x) / mLon, center.lat + (y + offset.y) / mLat]
         }
