@@ -49,9 +49,10 @@ def box(sx, sy, sz, at):
 
 
 def export(name, parts):
+    """One vertex-coloured mesh per model: a single primitive keeps the map's draw calls down."""
+    merged = trimesh.util.concatenate([paint(y_up(mesh), rgb) for mesh, rgb in parts])
     scene = trimesh.Scene()
-    for i, (mesh, rgb) in enumerate(parts):
-        scene.add_geometry(paint(y_up(mesh), rgb), node_name=f"{name}_{i}")
+    scene.add_geometry(merged, node_name=name)
     scene.export(os.path.join(OUT, f"{name}.glb"), include_normals=True)
 
 
