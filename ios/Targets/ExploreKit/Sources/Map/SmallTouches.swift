@@ -1,4 +1,5 @@
 import MapboxMaps
+import simd
 import UIKit
 
 /// Pigeons on the Römerberg that scatter when tapped, sparkling fountains, and the odd plane
@@ -210,8 +211,8 @@ struct LivingLayers: MapStyleContent {
         ModelLayer(id: SmallTouches.planeLayer, source: SmallTouches.planeSource)
             .slot(.middle).minZoom(12)
             .modelId("plane").modelType(.common3d)
-            .modelScale([2.5, 2.5, 2.5]).modelRotation(Exp(.get) { "r" })
-            .modelTranslation([0, 0, 260])
+            .modelScale(Exp(.literal) { [2.5, 2.5, 2.5] }).modelRotation(Exp(.get) { "r" })
+            .modelTranslation(Exp(.literal) { [0.0, 0.0, 260.0] })
             .modelCastShadows(false)
 
         CircleLayer(id: SmallTouches.sparkleA, source: "fountain-a")
