@@ -15,7 +15,19 @@ final class Chimneys {
     private var lastKey = ""
     private var pending = false
 
-    func styleLoaded() { lastKey = "" }
+    private weak var map: MapboxMap?
+
+    func styleLoaded(map: MapboxMap?) {
+        lastKey = ""
+        self.map = map
+        // After a style change the map may already be idle before the new buildings are drawn.
+        for delay in [1.5, 4.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, let map = self.map else { return }
+                self.refresh(map: map)
+            }
+        }
+    }
 
     /// Call when the camera settles.
     func refresh(map: MapboxMap) {
@@ -35,7 +47,10 @@ final class Chimneys {
             Task { @MainActor in
                 guard let self, let map else { return }
                 self.pending = false
-                guard case .success(let hits) = result else { return }
+                guard case .success(let hits) = result, !hits.isEmpty else {
+                    self.lastKey = ""   // tiles not drawn yet (e.g. right after a style change): try again on the next idle
+                    return
+                }
                 self.build(hits.map(\.queriedFeature.feature), map: map, origin: cam.center)
             }
         }

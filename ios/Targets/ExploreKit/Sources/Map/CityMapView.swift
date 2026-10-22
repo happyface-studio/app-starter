@@ -86,7 +86,7 @@ struct CityMapView: View {
             CloudDrift.shared.styleLoaded()
             LivingCity.shared.styleLoaded()
             TrafficSim.shared.styleLoaded()
-            Chimneys.shared.styleLoaded()
+            Chimneys.shared.styleLoaded(map: proxy.map)
             // `-hide layer1,layer2` hides layers (performance bisecting).
             if let map = proxy.map, let hide = UserDefaults.standard.string(forKey: "hide") {
                 for id in hide.split(separator: ",") {
