@@ -87,6 +87,12 @@ struct CityMapView: View {
             LivingCity.shared.styleLoaded()
             TrafficSim.shared.styleLoaded()
             Chimneys.shared.styleLoaded()
+            // `-hide layer1,layer2` hides layers (performance bisecting).
+            if let map = proxy.map, let hide = UserDefaults.standard.string(forKey: "hide") {
+                for id in hide.split(separator: ",") {
+                    try? map.setLayerProperty(for: String(id), property: "visibility", value: "none")
+                }
+            }
         }
         .onMapIdle { _ in
             if let map = proxy.map { Chimneys.shared.refresh(map: map) }
