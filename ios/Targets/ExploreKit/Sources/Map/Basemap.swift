@@ -1,6 +1,7 @@
 import Foundation
 import MapboxMaps
 import Observation
+import UIKit
 
 /// Mapbox Standard, patched so landmark models and ordinary buildings read as one city:
 /// landmark walls/roofs get the palette's tint (Standard hard-codes them white/peach), and all
