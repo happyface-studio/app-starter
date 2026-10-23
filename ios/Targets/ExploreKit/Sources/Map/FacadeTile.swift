@@ -16,6 +16,14 @@ struct FacadeTile: MapStyleContent {
 
     static func osmFacadeID(_ p: CityPalette, _ hex: String) -> String { "facade-\(p.id)-osm-\(hex.dropFirst())" }
 
+    /// Façades in real OSM colours; their number depends on the data, so they're added at runtime.
+    @MainActor
+    static func addOSMImages(_ map: MapboxMap, palette: CityPalette) {
+        for hex in BuildingLook.wallColours {
+            try? map.addImage(render(palette, variant: 0, wall: UIColor(hexString: hex)), id: osmFacadeID(palette, hex))
+        }
+    }
+
     private func facade(_ i: Int) -> StyleImage {
         StyleImage(id: Self.facadeID(palette, i), image: Self.render(palette, variant: i))
     }
@@ -45,9 +53,6 @@ struct FacadeTile: MapStyleContent {
         facade(21)
         facade(22)
         facade(23)
-        ForEvery(BuildingLook.wallColours, id: \.self) { hex in
-            StyleImage(id: Self.osmFacadeID(palette, hex), image: Self.render(palette, variant: 0, wall: UIColor(hexString: hex)))
-        }
     }
 
     // MARK: Colours
