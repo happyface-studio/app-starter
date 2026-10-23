@@ -134,10 +134,12 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            .fillExtrusionPattern(Exp(.concat) {
-                "facade-\(palette.id)-"
-                Exp(.toString) { Self.facadeVariant }
-            })
+            .fillExtrusionPattern(UserDefaults.standard.bool(forKey: "plainFacade")
+                ? Exp(.toString) { "facade-\(palette.id)-0" }
+                : Exp(.concat) {
+                    "facade-\(palette.id)-"
+                    Exp(.toString) { Self.facadeVariant }
+                })
             .fillExtrusionHeight(Self.wallTop)
             .fillExtrusionBase(Self.base)
             .fillExtrusionOpacity(Self.fadeIn)
