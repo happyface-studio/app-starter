@@ -113,7 +113,7 @@ struct FacadeTile: MapStyleContent {
     private static let lit = UIColor(hex: 0xFFD79A), unlit = UIColor(hex: 0x2B3148)
 
     /// Night walls: darker so lit windows stand out (the layer glows a little after dark).
-    private static func nightWall(_ c: UIColor) -> UIColor { c.blended(with: UIColor(hex: 0x1C2033), amount: 0.55) }
+    private static func nightWall(_ c: UIColor) -> UIColor { c.blended(with: UIColor(hex: 0x1C2033), amount: 0.62) }
 
     /// Window bays, 32 px per bay at @3x (patterns tile in screen space and want power-of-two
     /// sizes). Bays are mostly wall so façades don't turn into a dense window grid.

@@ -155,7 +155,7 @@ final class RoofBuilder {
         let halfL = (f.a.upperBound - f.a.lowerBound) / 2, aMid = (f.a.upperBound + f.a.lowerBound) / 2
         guard halfW > 1.5 else { return }
         let rise = min(halfW * 0.8, 5.5)
-        let tiers = 6
+        let tiers = rise > 3 ? 8 : 6
         let step = rise / Double(tiers)
         for k in 0..<tiers {
             let w = halfW * Double(tiers - k) / Double(tiers)

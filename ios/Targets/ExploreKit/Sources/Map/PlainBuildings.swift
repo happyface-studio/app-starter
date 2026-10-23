@@ -123,7 +123,7 @@ struct PlainBuildings: MapStyleContent {
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionAmbientOcclusionIntensity(0)
-            .fillExtrusionEmissiveStrength(night ? 0.75 : 0)
+            .fillExtrusionEmissiveStrength(night ? 1.0 : 0)
             .fillExtrusionCastShadows(true)
 
         // Ground floor: shopfronts or entrance doors on a darker plinth.
@@ -142,7 +142,7 @@ struct PlainBuildings: MapStyleContent {
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionAmbientOcclusionIntensity(0)
-            .fillExtrusionEmissiveStrength(night ? 0.75 : 0)
+            .fillExtrusionEmissiveStrength(night ? 1.0 : 0)
             .fillExtrusionCastShadows(true)
     }
 }
