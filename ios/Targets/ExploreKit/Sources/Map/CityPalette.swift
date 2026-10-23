@@ -32,6 +32,10 @@ struct CityPalette: Identifiable, Hashable {
     var landmarkRoof: UInt32? = nil
     /// Flat roofs: gravel and tar grey (slate is for pitched roofs only).
     var flatRoof: UInt32 = 0x9E9C97
+    /// Pitched roofs, as Frankfurt has them: clay tiles (terracotta, weathered red, brown-red),
+    /// anthracite concrete tiles and blue-grey slate. Ten buckets, so the list is the mix.
+    var roofs: [UInt32] = [0xB8654A, 0xB8654A, 0xC4795C, 0x9A5A47, 0x9A5A47,
+                           0x4E5259, 0x4E5259, 0x4E5259, 0x5D6577, 0x5D6577]
 
     /// Matched to the London toy-map reference: sand walls, slate roofs, rose roads, olive parks.
     static let mayfair = CityPalette(
@@ -106,6 +110,7 @@ struct CityPalette: Identifiable, Hashable {
         p.roof = roof.map { mix($0, snow, 0.75 * c) } ?? mix(buildings, snow, 0.75 * c)
         p.landmarkRoof = landmarkRoof.map { mix($0, 0xC8CEDC, 0.8 * c) }
         p.flatRoof = mix(flatRoof, snow, 0.8 * c)
+        p.roofs = roofs.map { mix($0, snow, 0.75 * c) }
         return p
     }
 

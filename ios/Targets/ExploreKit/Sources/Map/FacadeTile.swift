@@ -103,6 +103,17 @@ struct FacadeTile: MapStyleContent {
         }
     }
 
+    /// The pitched-roof colour for a building, picked from its id (same rule on device and in
+    /// style expressions, so roofs and the caps under them match).
+    static func pitchedRoof(_ p: CityPalette, id: Int) -> UIColor {
+        UIColor(hex: p.roofs[((id % 1_000_003) * 7) % p.roofs.count])
+    }
+
+    static func pitchedRoofExp(_ p: CityPalette) -> Any {
+        ["to-color", ["at", ["%", ["*", ["%", ["to-number", ["id"], 0], 1_000_003], 7], Double(p.roofs.count)],
+                      ["literal", p.roofs.map { UIColor(hex: $0).cssHex }]]] as [Any]
+    }
+
     static func roof(_ p: CityPalette, tone: Int) -> UIColor {
         let slate = UIColor(hex: p.roof ?? p.buildings)
         return tone % roofTones == 0 ? slate : slate.blended(with: UIColor(hex: 0x4A4E5C), amount: 0.35)

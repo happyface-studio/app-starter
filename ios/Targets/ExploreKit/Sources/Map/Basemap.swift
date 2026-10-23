@@ -249,7 +249,12 @@ final class Basemap {
            let w = parts.firstIndex(where: { $0 as? String == "window" }), w + 1 < parts.count {
             parts[w + 1] = ["match", ["config", "lightPreset"], ["night", "dusk"], nightGlass, dayGlass(p)] as [Any]
             if let roof = p.roof, let r = parts.firstIndex(where: { $0 as? String == "roof" }), r + 1 < parts.count {
-                parts[r + 1] = slate(roof)
+                // Pitched roofs in the tile/slate mix, flat and parapet roofs gravel grey.
+                let pitched: [Any] = ["any",
+                    ["in", ["get", "roof_type"], ["literal", ["gabled", "hipped", "pyramidal", "skillion"]]],
+                    ["all", ["<=", ["get", "height"], 30], ["<=", ["get", "area"], 600]]]
+                parts[r + 1] = ["case", pitched, FacadeTile.pitchedRoofExp(p), UIColor(hex: p.flatRoof).cssHex] as [Any]
+                _ = roof
             }
             body[body.count - 1] = parts
             color[color.count - 1] = body

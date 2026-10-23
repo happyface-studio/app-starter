@@ -97,10 +97,10 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            // Slate under the pitched roofs (`RoofBuilder`), gravel grey on flat roofs.
+            // The pitched roof's own colour under `RoofBuilder`'s roofs, gravel grey on flat roofs.
             .fillExtrusionColor(Exp.json(BuildingLook.roofColour(fallback: [
                 "case", BuildingLook.pitchedExp,
-                ["match", Self.json(Self.roofTone), 1, FacadeTile.roof(palette, tone: 1).cssHex, FacadeTile.roof(palette, tone: 0).cssHex],
+                FacadeTile.pitchedRoofExp(palette),
                 UIColor(hex: palette.flatRoof).cssHex,
             ] as [Any])))
             .fillExtrusionBase(Self.capBase)

@@ -119,7 +119,7 @@ final class RoofBuilder {
                 clutter(b, top: top, emit: emit)
             } else {
                 let colour = BuildingLook.roofColour(id: b.id)
-                    ?? FacadeTile.roof(palette, tone: (b.partOf * 3) % FacadeTile.roofTones).cssHex
+                    ?? FacadeTile.pitchedRoof(palette, id: b.id).cssHex
                 roof(b, shape: shape, top: top, colour: colour, emit: emit)
             }
             if out.count > 12_000 { break }
