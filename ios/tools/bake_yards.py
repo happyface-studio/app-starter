@@ -73,6 +73,9 @@ def relation_polygon(e):
 
 def kind_of(tags):
     lu, le, am = tags.get("landuse"), tags.get("leisure"), tags.get("amenity")
+    if tags.get("highway") in ("pedestrian", "footway") or tags.get("place") == "square" \
+            or "area:highway" in tags or am == "marketplace":
+        return "plaza"
     if am == "parking":
         return "parking"
     if lu in ("residential",):
@@ -90,7 +93,7 @@ def main():
     buildings = json.load(open(os.path.join(OSM, "buildings.json")))["elements"]
     trees_existing = json.load(open(os.path.join(RES, "frankfurt_trees.geojson")))["features"]
 
-    areas = {"block": [], "court": [], "lawn": [], "parking": []}
+    areas = {"block": [], "court": [], "lawn": [], "parking": [], "plaza": []}
     for e in ground:
         k = kind_of(e.get("tags", {}))
         if not k:
@@ -123,6 +126,7 @@ def main():
                     road_buf.append(p.buffer(1.5))
             elif hw in ("pedestrian", "living_street"):
                 road_buf.append(LineString([xy(q["lat"], q["lon"]) for q in e["geometry"]]).buffer(5, 8))
+    road_buf += [p.buffer(1.5) for p in areas["plaza"]]
     roads = unary_union(road_buf)
     print("roads buffered")
 

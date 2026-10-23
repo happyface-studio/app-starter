@@ -6,6 +6,10 @@ BBOX="50.092,8.640,50.132,8.720"
 q="[out:json][timeout:180];(
 wr[\"landuse\"~\"^(residential|allotments|grass|meadow|village_green|commercial|retail)$\"]($BBOX);
 wr[\"leisure\"~\"^(garden|playground)$\"]($BBOX);
+wr[\"highway\"~\"^(pedestrian|footway)$\"][\"area\"=\"yes\"]($BBOX);
+wr[\"place\"=\"square\"]($BBOX);
+wr[\"area:highway\"]($BBOX);
+wr[\"amenity\"=\"marketplace\"]($BBOX);
 wr[\"amenity\"=\"parking\"][\"parking\"!~\"underground|multi-storey\"]($BBOX);
 );out geom;"
 for i in 1 2 3 4 5 6; do
