@@ -30,6 +30,8 @@ struct CityPalette: Identifiable, Hashable {
     var roof: UInt32? = nil
     /// Landmark models render roofs lighter and greyer than façade buildings, so they need their own input.
     var landmarkRoof: UInt32? = nil
+    /// Flat roofs: gravel and tar grey (slate is for pitched roofs only).
+    var flatRoof: UInt32 = 0x9E9C97
 
     /// Matched to the London toy-map reference: sand walls, slate roofs, rose roads, olive parks.
     static let mayfair = CityPalette(
@@ -103,6 +105,7 @@ struct CityPalette: Identifiable, Hashable {
         p.water = mix(water, 0x8FB4CC, 0.35 * c)
         p.roof = roof.map { mix($0, snow, 0.75 * c) } ?? mix(buildings, snow, 0.75 * c)
         p.landmarkRoof = landmarkRoof.map { mix($0, 0xC8CEDC, 0.8 * c) }
+        p.flatRoof = mix(flatRoof, snow, 0.8 * c)
         return p
     }
 

@@ -6,6 +6,7 @@ import UIKit
 /// a façade building or landmark covers them, as it did for Standard's own plain layer.
 struct PlainBuildings: MapStyleContent {
     var palette: CityPalette
+    var night = false
 
     private static let source = "plain-buildings"
 
@@ -15,7 +16,20 @@ struct PlainBuildings: MapStyleContent {
     }
 
     /// Real height plus up to 1.6 m per building, so a terrace reads as separate houses.
-    private static let height = Exp.json(["+", ["number", ["get", "height"]], ["random", 0, 1.6, ["id"]]] as [Any])
+    /// Deterministic (not `random`) so `RoofBuilder` can put roofs exactly on top.
+    static func jitter(id: Int) -> Double { Double(id % 17) / 16 * 1.6 }
+    private static let height = Exp.json(["+", ["number", ["get", "height"]], ["*", ["/", ["%", ["id"], 17], 16], 1.6]] as [Any])
+
+    /// Ground floor height; buildings under 7 m keep one wall.
+    static let groundFloor = 3.8
+    private static var hasGround: Exp { Exp.json([">=", ["-", ["number", ["get", "height"]], ["coalesce", ["get", "min_height"], 0]], 7] as [Any]) }
+    private static var upperBase: Exp {
+        Exp(.switchCase) {
+            hasGround
+            Exp(.sum) { base; groundFloor }
+            base
+        }
+    }
 
     /// A stable per-building number 0..<n, so neighbours in a terrace differ but each building
     /// keeps its look. Uses `building_id`, which all stacked parts of one building share, so a
@@ -83,9 +97,11 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
+            // Slate under the pitched roofs (`RoofBuilder`), gravel grey on flat roofs.
             .fillExtrusionColor(Exp.json(BuildingLook.roofColour(fallback: [
-                "match", Self.json(Self.roofTone), 1,
-                FacadeTile.roof(palette, tone: 1).cssHex, FacadeTile.roof(palette, tone: 0).cssHex,
+                "case", BuildingLook.pitchedExp,
+                ["match", Self.json(Self.roofTone), 1, FacadeTile.roof(palette, tone: 1).cssHex, FacadeTile.roof(palette, tone: 0).cssHex],
+                UIColor(hex: palette.flatRoof).cssHex,
             ] as [Any])))
             .fillExtrusionBase(Self.capBase)
             .fillExtrusionHeight(Self.height)
@@ -103,10 +119,30 @@ struct PlainBuildings: MapStyleContent {
                 "concat", "facade-\(palette.id)-", ["to-string", Self.json(Self.facadeVariant)],
             ] as [Any])))
             .fillExtrusionHeight(Self.wallTop)
-            .fillExtrusionBase(Self.base)
+            .fillExtrusionBase(Self.upperBase)
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionAmbientOcclusionIntensity(0)
+            .fillExtrusionEmissiveStrength(night ? 0.75 : 0)
+            .fillExtrusionCastShadows(true)
+
+        // Ground floor: shopfronts or entrance doors on a darker plinth.
+        FillExtrusionLayer(id: "plain-buildings-ground", source: Self.source)
+            .sourceLayer("building")
+            .slot(.middle)
+            .minZoom(15)
+            .filter(Exp(.all) { Self.extruded; Self.hasGround })
+            .fillExtrusionPattern(Exp.json(BuildingLook.wallImage({ FacadeTile.osmGroundID(palette, $0, style: 0) }, fallback: [
+                "concat", "ground-\(palette.id)-",
+                ["to-string", ["%", Self.json(Self.facadeVariant), Double(FacadeTile.tones)]], "-",
+                ["to-string", ["%", ["coalesce", ["id"], 0], Double(FacadeTile.groundStyles)]],
+            ] as [Any])))
+            .fillExtrusionBase(Self.base)
+            .fillExtrusionHeight(Exp(.sum) { Self.base; Self.groundFloor })
+            .fillExtrusionOpacity(Self.fadeIn)
+            .fillExtrusionVerticalGradient(false)
+            .fillExtrusionAmbientOcclusionIntensity(0)
+            .fillExtrusionEmissiveStrength(night ? 0.75 : 0)
             .fillExtrusionCastShadows(true)
     }
 }

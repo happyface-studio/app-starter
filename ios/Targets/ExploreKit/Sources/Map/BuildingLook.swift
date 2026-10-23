@@ -44,6 +44,39 @@ enum BuildingLook {
         return ["case", ["all", ["<=", ["get", "area"], 200], [">=", ["get", "height"], 100]], "flat", mapped] as [Any]
     }
 
+    // MARK: Lookups for on-device geometry (`RoofBuilder`)
+
+    private static let roofByID: [Int: String] = {
+        var out: [Int: String] = [:]
+        for (shape, ids) in tags?.roof ?? [:] { for i in ids { out[i] = shape } }
+        return out
+    }()
+
+    private static let roofColourByID: [Int: String] = {
+        var out: [Int: String] = [:]
+        for (c, ids) in tags?.roofColour ?? [:] { for i in ids { out[i] = c } }
+        return out
+    }()
+
+    /// Roof shape our plain buildings get: OSM's where mapped, else houses up to 22 m get a gabled
+    /// (two in three) or hipped roof, everything else flat. Must match `pitchedExp`.
+    static func roofShape(id: Int, height: Double) -> String {
+        if let s = roofByID[id] { return s }
+        guard height <= 22 else { return "flat" }
+        return id % 3 == 0 ? "hipped" : "gabled"
+    }
+
+    static func roofColour(id: Int) -> String? { roofColourByID[id] }
+
+    /// True for plain buildings that get a pitched roof from `RoofBuilder` (same rule as above).
+    static var pitchedExp: Any {
+        let roofs = tags?.roof ?? [:]
+        let pitched = roofs.filter { $0.key != "flat" }.flatMap(\.value)
+        let flat = roofs["flat"] ?? []
+        func among(_ ids: [Int]) -> Any { ids.isEmpty ? false : ["match", ["id"], ids, true, false] as [Any] }
+        return ["any", among(pitched), ["all", ["<=", ["get", "height"], 22], ["!", among(flat)]]] as [Any]
+    }
+
     static func wallColour(fallback: Any) -> Any { byID(tags?.wall ?? [:], fallback: fallback) }
     static func wallImage(_ name: (String) -> String, fallback: Any) -> Any {
         byID(tags?.wall ?? [:], value: name, fallback: fallback)

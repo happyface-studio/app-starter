@@ -20,6 +20,8 @@ struct CityMapView: View {
         }
     }
 
+    private var isDark: Bool { store.mood == .night || store.mood == .dusk }
+
     private var map: some View {
         MapReader { proxy in
         Map(viewport: $viewport) {
@@ -35,9 +37,10 @@ struct CityMapView: View {
                 Yards(palette: store.renderPalette)
                 GroundTextures(palette: store.renderPalette)
                 Kerbs(palette: store.renderPalette)
-                FacadeTile(palette: store.renderPalette)
+                FacadeTile(palette: store.renderPalette, night: isDark)
                 if !UserDefaults.standard.bool(forKey: "standardPlain")  {
-                    PlainBuildings(palette: store.renderPalette)
+                    PlainBuildings(palette: store.renderPalette, night: isDark)
+                    RoofExtras()
                 }
                 StreetTextures()
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
@@ -88,7 +91,8 @@ struct CityMapView: View {
             CloudDrift.shared.styleLoaded()
             LivingCity.shared.styleLoaded()
             TrafficSim.shared.styleLoaded()
-            if let map = proxy.map { FacadeTile.addOSMImages(map, palette: store.renderPalette) }
+            RoofBuilder.shared.styleLoaded(palette: store.renderPalette)
+            if let map = proxy.map { FacadeTile.addOSMImages(map, palette: store.renderPalette, night: isDark) }
             // `-hide layer1,layer2` hides layers (performance bisecting).
             if let map = proxy.map, let hide = UserDefaults.standard.string(forKey: "hide") {
                 for id in hide.split(separator: ",") {
@@ -99,6 +103,7 @@ struct CityMapView: View {
         .onMapLoaded { _ in
             WaterDrift.shared.start(map: proxy.map)
             TrafficSim.shared.start(map: proxy.map)
+            RoofBuilder.shared.start(map: proxy.map)
             CloudDrift.shared.start(map: proxy.map)
             LivingCity.shared.start(map: proxy.map)
             if let map = proxy.map {

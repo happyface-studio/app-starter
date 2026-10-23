@@ -247,7 +247,7 @@ final class Basemap {
            var body = color.last as? [Any],
            var parts = body.last as? [Any],
            let w = parts.firstIndex(where: { $0 as? String == "window" }), w + 1 < parts.count {
-            parts[w + 1] = ["match", ["config", "lightPreset"], "night", nightGlass, dayGlass(p)] as [Any]
+            parts[w + 1] = ["match", ["config", "lightPreset"], ["night", "dusk"], nightGlass, dayGlass(p)] as [Any]
             if let roof = p.roof, let r = parts.firstIndex(where: { $0 as? String == "roof" }), r + 1 < parts.count {
                 parts[r + 1] = slate(roof)
             }
@@ -262,7 +262,9 @@ final class Basemap {
         if var emissive = paint["building-emissive-strength"] as? [Any],
            var parts = emissive.last as? [Any],
            let w = parts.firstIndex(where: { $0 as? String == "window" }), w + 1 < parts.count {
-            parts[w + 1] = ["match", ["config", "lightPreset"], "night", ["random", 0, 0.2, ["id"]], ["random", 0.1, 0.25, ["id"]]] as [Any]
+            // After dark, a mix: about four in ten buildings have their lights on.
+            let lights: [Any] = ["case", [">", ["random", 0, 1, ["id"]], 0.58], 1.1, 0.04]
+            parts[w + 1] = ["match", ["config", "lightPreset"], ["night", "dusk"], lights, ["random", 0.1, 0.25, ["id"]]] as [Any]
             emissive[emissive.count - 1] = parts
             paint["building-emissive-strength"] = emissive
         }
