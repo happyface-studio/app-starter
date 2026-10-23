@@ -66,6 +66,7 @@ final class Basemap {
             switch id {
             case "building-models": patchLandmarks(&layers[i], palette)
             case "procedural-buildings": patchFacades(&layers[i], palette)
+            case "land", "landuse": patchGround(&layers[i])
             default: patchStreets(&layers[i], id: id, palette)
             }
         }
@@ -74,6 +75,20 @@ final class Basemap {
         }
         style["layers"] = layers
         patchDaylight(&style)
+    }
+
+    /// Bare ground renders much darker than its colour under our daylight (an off-white came out
+    /// mid grey), so by day land and landuse glow most of the way to their true colour. At dusk
+    /// and night `measure-light` drops and they light normally.
+    private static func patchGround(_ layer: inout [String: Any]) {
+        guard var paint = layer["paint"] as? [String: Any] else { return }
+        let byLight: [Any] = ["interpolate", ["linear"], ["measure-light", "brightness"], 0.25, 0.05, 0.35, 0.7]
+        if layer["type"] as? String == "background" {
+            paint["background-emissive-strength"] = ["interpolate", ["linear"], ["zoom"], 13, 0.1, 14, byLight] as [Any]
+        } else {
+            paint["fill-emissive-strength"] = byLight
+        }
+        layer["paint"] = paint
     }
 
     /// Standard's day light is 80% flat ambient with a weak sun almost overhead, which washes the
