@@ -7,6 +7,7 @@ Drawn at @2x; the map tints nothing, it lays these over the palette colours.
   tex_slabs    running-bond paving slabs (footpaths, sidewalks)
   tex_grain    faint asphalt grain with a few pebbles (roads)
   tex_grass    mottled lawn with fine blades (parks, grass)
+  tex_ground   soft sandy mottling and fine gravel (open land)
   tex_water    soft light mottling with sparse wave marks (rivers, lakes)
   clouds       soft cloud-shadow blobs, a seamless 512 px tile repeated 4x4 into one 2048 px image
                (map-anchored, drifted by CloudShadows; not a pattern)
@@ -122,6 +123,29 @@ def grass():
     base.save(os.path.join(OUT, "tex_grass@2x.png"))
 
 
+def ground():
+    """Open ground between houses: soft sandy mottling and fine gravel, so bare land reads as a
+    surface instead of a flat void. Very low contrast; it sits on the palette's land colour."""
+    w = h = 256
+    dark, light = (120, 92, 60), (255, 250, 236)
+
+    def draw(d, ox, oy):
+        mottle(d, ox, oy, w, h, 26, 16, 40, dark, 8, 16)
+        mottle(d, ox, oy, w, h, 22, 14, 34, light, 10, 20)
+
+    base = tiled((w, h), draw, blur=12)
+
+    def gravel(d, ox, oy):
+        for _ in range(1500):
+            x, y = ox + random.random() * w, oy + random.random() * h
+            r = random.uniform(0.4, 1.0)
+            is_dark = random.random() < 0.5
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(*(dark if is_dark else light), random.randint(14, 34)))
+
+    base.alpha_composite(tiled((w, h), gravel, blur=0.3))
+    base.save(os.path.join(OUT, "tex_ground@2x.png"))
+
+
 def water():
     w = h = 256
     light, deep = (235, 248, 255), (20, 60, 110)
@@ -169,6 +193,7 @@ if __name__ == "__main__":
     slabs()
     grain()
     grass()
+    ground()
     water()
 
     print("ok")

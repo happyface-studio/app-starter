@@ -161,37 +161,42 @@ def main():
     add(paved, "paved")
     add(gardens, "garden", min_area=25)
     add(parking, "parking")
-    counts = {k: sum(1 for f in features if f["properties"]["k"] == k) for k in ("paved", "garden", "parking")}
+    # Soft lawn patches: the gardens shrunk and regrown with round joins, which drops slivers and
+    # rounds every corner, so patches read as planted lawns rather than leftover shapes.
+    soft = gardens.buffer(-3.5, 4).buffer(2.5, 8)
+    add(soft, "lawn", tol=0.8, min_area=150)
+    counts = {k: sum(1 for f in features if f["properties"]["k"] == k) for k in ("paved", "garden", "parking", "lawn")}
 
-    # Garden trees and bushes, kept off walls, existing trees and each other.
+    # Garden trees in small clumps (2–5), the way back gardens grow, kept off walls and away from
+    # mapped street trees. Single bushes dotted everywhere looked like litter.
     near = STRtree([Point(*xy(f["geometry"]["coordinates"][1], f["geometry"]["coordinates"][0])) for f in trees_existing])
-    inner = gardens.buffer(-2.0)
-    placed = []
+    inner = gardens.buffer(-3.0)
     n = 0
     for g in getattr(inner, "geoms", [inner]):
-        if g.is_empty or g.area < 30:
+        if g.is_empty or g.area < 60:
             continue
         pg = prep(g)
         minx, miny, maxx, maxy = g.bounds
-        step = 15.0
+        step = 24.0
         y = miny + random.uniform(0, step)
         while y < maxy:
             x = minx + random.uniform(0, step)
             while x < maxx:
-                px, py = x + random.uniform(-4, 4), y + random.uniform(-4, 4)
+                cx, cy = x + random.uniform(-6, 6), y + random.uniform(-6, 6)
                 x += step
-                if random.random() > 0.32 or not pg.contains(Point(px, py)):
+                if random.random() > 0.55 or not pg.contains(Point(cx, cy)) or len(near.query(Point(cx, cy).buffer(7))):
                     continue
-                if len(near.query(Point(px, py).buffer(5))) or any(math.hypot(px - a, py - b) < 6 for a, b in placed[-40:]):
-                    continue
-                placed.append((px, py))
-                r = random.random()
-                m, s = ("bush_a", random.uniform(0.6, 0.9)) if r < 0.45 else \
-                       ("tree_c", random.uniform(0.6, 0.8)) if r < 0.8 else ("tree_a", random.uniform(0.65, 0.85))
-                lon, lat = to_lonlat(px, py)
-                features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [round(lon, 7), round(lat, 7)]},
-                                 "properties": {"k": "tree", "m": m, "s": round(s, 2), "r": random.randint(0, 359)}})
-                n += 1
+                for _ in range(random.randint(2, 5)):
+                    a_, d_ = random.uniform(0, 2 * math.pi), random.uniform(0, 5.5)
+                    px, py = cx + math.cos(a_) * d_, cy + math.sin(a_) * d_
+                    if not pg.contains(Point(px, py)):
+                        continue
+                    r = random.random()
+                    m = "tree_a" if r < 0.4 else "tree_b" if r < 0.7 else "tree_c" if r < 0.9 else "bush_a"
+                    lon, lat = to_lonlat(px, py)
+                    features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [round(lon, 7), round(lat, 7)]},
+                                     "properties": {"k": "tree", "m": m}})
+                    n += 1
             y += step
     counts["tree"] = n
 

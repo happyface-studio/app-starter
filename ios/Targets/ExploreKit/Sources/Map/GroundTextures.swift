@@ -60,6 +60,27 @@ struct GroundTextures: MapStyleContent {
             VectorSource(id: Self.source)
                 .url("mapbox://mapbox.mapbox-streets-v8")
 
+            // Solid fills under the textures, so the land grain (`Yards`) stays off parks and water.
+            FillLayer(id: "solid-lawn", source: Self.source)
+                .sourceLayer("landuse")
+                .slot(.bottom)
+                .minZoom(13)
+                .filter(Self.classIn(Self.lawnClasses))
+                .fillColor(StyleColor(UIColor(hex: palette.green)))
+
+            FillLayer(id: "solid-landcover-grass", source: Self.source)
+                .sourceLayer("landcover")
+                .slot(.bottom)
+                .minZoom(13)
+                .filter(Self.classIn(["grass"]))
+                .fillColor(StyleColor(UIColor(hex: palette.green)))
+
+            FillLayer(id: "solid-water", source: Self.source)
+                .sourceLayer("water")
+                .slot(.bottom)
+                .minZoom(12.5)
+                .fillColor(StyleColor(UIColor(hex: palette.water)))
+
             FillLayer(id: "tex-lawn", source: Self.source)
                 .sourceLayer("landuse")
                 .slot(.bottom)
