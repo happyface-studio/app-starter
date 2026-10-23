@@ -11,7 +11,7 @@ Without this, everything between streets and buildings is bare 'land' colour. He
   tree    a scatter of garden trees and bushes inside the gardens (model id in `m`)
 
 The street side of each block (carriageway, pavement and a frontage strip) is cut away, so
-gardens never reach the pavement.
+gardens never reach the pavement, and so are pedestrian zones and squares.
 Writes Resources/frankfurt_yards.geojson.
 """
 
@@ -108,6 +108,21 @@ def main():
         hw = e.get("tags", {}).get("highway", "").replace("_link", "")
         if hw in STREET_CLEAR and e.get("tags", {}).get("area") != "yes":
             road_buf.append(LineString([xy(p["lat"], p["lon"]) for p in e["geometry"]]).buffer(STREET_CLEAR[hw], 8))
+    # Pedestrian zones, squares and footpaths stay paved (the Römerberg sits inside a residential block).
+    life = json.load(open(os.path.join(OSM, "life.json")))["elements"]
+    for e in streets + life:
+        if e["type"] != "way" or not e.get("geometry"):
+            continue
+        t = e.get("tags", {})
+        hw = t.get("highway")
+        if hw in ("pedestrian", "footway", "living_street") or t.get("place") == "square":
+            closed = e["geometry"][0] == e["geometry"][-1]
+            if closed and (t.get("area") == "yes" or hw == "pedestrian" or t.get("place") == "square"):
+                p = way_polygon(e["geometry"])
+                if p is not None:
+                    road_buf.append(p.buffer(1.5))
+            elif hw in ("pedestrian", "living_street"):
+                road_buf.append(LineString([xy(q["lat"], q["lon"]) for q in e["geometry"]]).buffer(5, 8))
     roads = unary_union(road_buf)
     print("roads buffered")
 
