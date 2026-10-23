@@ -112,6 +112,9 @@ struct CityMapView: View {
                 LandmarkDump.run(map: map) { opts in map.setCamera(to: opts) }
             }
         }
+        .onMapIdle { _ in
+            if let map = proxy.map { DebugProbe.run(map) }
+        }
         .onMapTapGesture { _ in
             if store.selection != nil { store.selection = nil }
         }

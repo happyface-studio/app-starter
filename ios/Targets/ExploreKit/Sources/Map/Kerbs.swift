@@ -88,7 +88,9 @@ struct Kerbs: MapStyleContent {
     }
 
     private var pavementColor: UIColor {
-        UIColor(hex: palette.paving).blended(with: UIColor(hex: palette.roads), amount: 0.32)
+        // Pavements sit between the ground and the curb colour; deriving them from the (now dark)
+        // asphalt made them muddy.
+        UIColor(hex: palette.paving).blended(with: UIColor(hex: palette.curb), amount: 0.35)
     }
 
     private func line(_ id: String, side: Double, width: @escaping (Double) -> Double,
@@ -110,7 +112,7 @@ struct Kerbs: MapStyleContent {
     private func side(_ side: Double) -> some MapStyleContent {
         let s = side > 0 ? "r" : "l"
         let pave = pavementColor
-        let faceColor = pave.blended(with: UIColor(hex: palette.roads), amount: 0.35).blended(with: .black, amount: 0.16)
+        let faceColor = pave.blended(with: .black, amount: 0.22)
         let topColor = UIColor(hex: palette.curb).blended(with: .white, amount: 0.45)
         let pastKerb: (Double) -> Double = { Self.face($0) + Self.top($0) }
         line("kerb-pavement-\(s)", side: side, width: Self.pavement, inner: pastKerb, color: pave)
