@@ -23,9 +23,9 @@ struct StreetFurniture: MapStyleContent {
             Exp(.linear)
             Exp(.zoom)
             15.5
-            [2.2, 2.2, 2.2]
+            [1.4, 1.4, 1.4]
             18
-            [1.6, 1.6, 1.6]
+            [1.05, 1.05, 1.05]
         }
     }
 

@@ -1,7 +1,7 @@
 import MapboxMaps
 
 /// Shopfronts with striped awnings and warm windows, café tables, benches, bike racks and rental
-/// docks, and rows of parked cars (data baked by `ios/tools/bake_street_detail.py`).
+/// docks, rows of parked cars and street trees (data baked by `ios/tools/bake_street_detail.py`).
 struct StreetDetail: MapStyleContent {
     private static let source = "street-detail"
 
@@ -65,9 +65,19 @@ struct StreetDetail: MapStyleContent {
             Model(id: "bike_rack", uri: PuffyTrees.model("bike_rack"))
             Model(id: "bike_dock", uri: PuffyTrees.model("bike_dock"))
 
-            layer("parked-cars", kind: "parked", model: nil, scale: Self.toy(1.5, 1.2), minZoom: 16.4, shadows: true)
-            layer("shopfronts", kind: "shop", model: nil, scale: Self.toy(1.3, 1.15), shadows: true)
-            layer("shop-windows", kind: "shop", model: "shop_glow", scale: Self.toy(1.3, 1.15))
+            // Street trees reuse the season's tree models registered by `PuffyTrees`.
+            layer("street-trees", kind: "tree", model: nil, scale: Self.toy(1.6, 1.3), minZoom: 15.5, shadows: true)
+                .modelOpacity(Exp(.interpolate) {
+                    Exp(.linear)
+                    Exp(.zoom)
+                    15.5
+                    0
+                    16
+                    1
+                })
+            layer("parked-cars", kind: "parked", model: nil, scale: Self.toy(1.25, 1.0), minZoom: 16.4, shadows: true)
+            layer("shopfronts", kind: "shop", model: nil, scale: Self.toy(1.1, 1.0), shadows: true)
+            layer("shop-windows", kind: "shop", model: "shop_glow", scale: Self.toy(1.1, 1.0))
                 .modelCastShadows(false)
                 // Warm and bright after dark, a soft lit-shop glow by day.
                 .modelEmissiveStrength(Exp(.interpolate) {
@@ -78,10 +88,10 @@ struct StreetDetail: MapStyleContent {
                     0.4
                     0.1
                 })
-            layer("cafe-tables", kind: "cafe", model: "cafe_set", scale: Self.toy(1.4, 1.2), minZoom: 16.6)
-            layer("benches", kind: "bench", model: "bench", scale: Self.toy(1.6, 1.3), minZoom: 16.8)
-            layer("bike-racks", kind: "bikes", model: "bike_rack", scale: Self.toy(1.5, 1.25), minZoom: 16.8)
-            layer("bike-docks", kind: "dock", model: "bike_dock", scale: Self.toy(1.5, 1.25), minZoom: 16.6)
+            layer("cafe-tables", kind: "cafe", model: "cafe_set", scale: Self.toy(1.15, 1.0), minZoom: 16.6)
+            layer("benches", kind: "bench", model: "bench", scale: Self.toy(1.2, 1.0), minZoom: 16.8)
+            layer("bike-racks", kind: "bikes", model: "bike_rack", scale: Self.toy(1.2, 1.0), minZoom: 16.8)
+            layer("bike-docks", kind: "dock", model: "bike_dock", scale: Self.toy(1.2, 1.0), minZoom: 16.6)
         }
     }
 }

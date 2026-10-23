@@ -4,7 +4,7 @@
   python3 ios/tools/bake_street_detail.py    # needs osm/streets.json, buildings.json, life.json too
 
 Writes Resources/frankfurt_detail.geojson: points with
-  kind  "shop" | "cafe" | "bench" | "bikes" | "dock" | "parked"
+  kind  "shop" | "cafe" | "bench" | "bikes" | "dock" | "parked" | "tree"
   m     model id (awning colour for shops, car colour for parked cars)
   r     model-rotation [0, 0, deg] turning the model's +X out to the street (shops, cafés, benches)
         or along the kerb (bikes, parked cars)
@@ -240,6 +240,56 @@ def main():
                     rot = heading(ux * side, uy * side) + random.uniform(-2, 2)
                     emit(x, y, "parked", rot, m=random.choice(CAR_MODELS))
                     counts["parked"] += 1
+
+    # --- street trees: rows of trees on the pavement edge of most residential and local streets,
+    # leaving room for lamps, signals, shopfronts and the street trees already mapped in OSM.
+    osm_trees = Grid(20)
+    for f in json.load(open(os.path.join(RES, "frankfurt_trees.geojson")))["features"]:
+        lon, lat = f["geometry"]["coordinates"]
+        osm_trees.add(*xy(lat, lon))
+    fixed = Grid(10)
+    for f in features:
+        if f["properties"]["kind"] != "parked":
+            lon, lat = f["geometry"]["coordinates"]
+            fixed.add(*xy(lat, lon))
+    TREE_ON = {"residential", "unclassified", "tertiary", "secondary", "living_street"}
+    for w in ways:
+        tags = w.get("tags", {})
+        hwy = tags.get("highway")
+        if hwy not in TREE_ON or tags.get("tunnel") not in (None, "no") or tags.get("bridge") not in (None, "no"):
+            continue
+        if random.random() > 0.6:
+            continue
+        ids, geom = w.get("nodes", []), [xy(p["lat"], p["lon"]) for p in w["geometry"]]
+        junctions = [geom[k] for k, nid in enumerate(ids) if degree[nid] > 1 or k in (0, len(ids) - 1)]
+        off = DRAWN_HALF[hwy] + 2.3
+        sides = (1, -1) if random.random() < 0.7 else (random.choice((1, -1)),)
+        for side in sides:
+            carry = random.uniform(0, 13)
+            for (ax, ay), (bx, by) in zip(geom, geom[1:]):
+                seg = math.hypot(bx - ax, by - ay)
+                if seg < 1:
+                    continue
+                ux, uy = (bx - ax) / seg, (by - ay) / seg
+                rx, ry = uy * side, -ux * side
+                t = carry
+                while t < seg:
+                    cx, cy = ax + ux * t, ay + uy * t
+                    t += 13 + random.uniform(-1.5, 1.5)
+                    if any(math.hypot(cx - jx, cy - jy) < 12 for jx, jy in junctions):
+                        continue
+                    x, y = cx + rx * off, cy + ry * off
+                    if any(True for _ in osm_trees.near(x, y, 8)) or any(True for _ in fixed.near(x, y, 3.5)) \
+                            or any(True for _ in trams.near(cx, cy, 5)) or inside_building(buildings, x, y, pad=1.5):
+                        continue
+                    r = random.random()
+                    m = "tree_c" if r < 0.5 else "tree_a" if r < 0.8 else "tree_b"
+                    lat, lon = latlon(x, y)
+                    features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [round(lon, 7), round(lat, 7)]},
+                                     "properties": {"kind": "tree", "m": m, "r": [0, 0, random.randint(0, 359)]}})
+                    fixed.add(x, y)
+                    counts["tree"] += 1
+                carry = t - seg
 
     json.dump({"type": "FeatureCollection", "features": features}, open(OUT, "w"), separators=(",", ":"))
     print(dict(counts), "->", OUT)

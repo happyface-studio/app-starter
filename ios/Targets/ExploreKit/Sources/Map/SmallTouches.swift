@@ -127,7 +127,7 @@ struct LivingLayers: MapStyleContent {
         ModelLayer(id: "people", source: "people")
             .slot(.middle).minZoom(16)
             .modelId(Exp(.get) { "m" }).modelType(.common3d)
-            .modelScale(Self.toy(2.6, 2.0)).modelRotation(Exp(.get) { "r" })
+            .modelScale(Self.toy(1.4, 1.05)).modelRotation(Exp(.get) { "r" })
             .modelCastShadows(true).modelReceiveShadows(true)
 
         ModelLayer(id: "trams", source: "trams")
@@ -149,7 +149,7 @@ struct LivingLayers: MapStyleContent {
             .slot(.middle).minZoom(15.5)
             .filter(Exp(.eq) { Exp(.get) { "m" }; "duck" })
             .modelId("duck").modelType(.common3d)
-            .modelScale(Self.toy(5, 3.5))
+            .modelScale(Self.toy(3, 2.2))
             .modelRotation(Exp(.get) { "r" })
 
         ModelLayer(id: SmallTouches.planeLayer, source: SmallTouches.planeSource)

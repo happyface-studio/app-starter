@@ -354,9 +354,9 @@ struct Traffic: MapStyleContent {
             Exp(.linear)
             Exp(.zoom)
             15.5
-            [1.6, 1.6, 1.6]
+            [1.3, 1.3, 1.3]
             18
-            [1.2, 1.2, 1.2]
+            [1.0, 1.0, 1.0]
         }
     }
 

@@ -36,7 +36,7 @@ struct CityPalette: Identifiable, Hashable {
         id: "mayfair", title: "Mayfair",
         buildings: 0xEAC79A, landmark: 0xE4C08E,
         glass: Glass(hue: 226...234, saturation: 22...32, lightness: 36...46),
-        land: 0xE8E2D7, landuse: 0xE4DED3, roads: 0x5E5F65, trunks: 0x55565C,
+        land: 0xD8D5CF, landuse: 0xD4D1CB, roads: 0x5E5F65, trunks: 0x55565C,
         curb: 0xE2D8CC, paving: 0xEDE1CD, water: 0x5A9AC2, green: 0xABBD5A,
         roof: 0x5F688E, landmarkRoof: 0x2C3466)
 
