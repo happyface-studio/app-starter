@@ -2,7 +2,7 @@ import MapboxMaps
 import UIKit
 
 /// Buildings Standard draws without façades, redrawn with varied wall tones and window patterns
-/// (`FacadeTile`), a slate mansard storey on most houses, and a thin slate cap as the roof. Mapbox hides these footprints wherever
+/// (`FacadeTile`) and a slate cap as the roof. Mapbox hides these footprints wherever
 /// a façade building or landmark covers them, as it did for Standard's own plain layer.
 struct PlainBuildings: MapStyleContent {
     var palette: CityPalette
@@ -29,7 +29,6 @@ struct PlainBuildings: MapStyleContent {
         }
     }
 
-    private static var isPart: Exp { Exp(.eq) { Exp(.get) { "type" }; "building:part" } }
 
     /// The slate cap is the top 1.5 m *inside* each building, so it never pokes into a part stacked
     /// on top. It has to be this thick: at the zoom levels most views use, a thinner cap and the
@@ -53,25 +52,7 @@ struct PlainBuildings: MapStyleContent {
     }
     private static var roofTone: Exp { pick(FacadeTile.roofTones, idWeight: 3) }
 
-    /// Houses and Gründerzeit blocks (10–32 m): about seven in ten get a slate top storey (a mansard
-    /// seen from above), the rest keep a flat roof.
-    static let mansardDepth = 4.2   // includes the cap, so the slate storey itself is 2.7 m
-    private static var hasMansard: Exp {
-        Exp(.all) {
-            Exp(.gte) { height; 10 }
-            Exp(.lte) { height; 32 }
-            Exp(.not) { isPart }
-            Exp(.gte) { pick(10, idWeight: 13); 3 }
-        }
-    }
-
-    private static var wallTop: Exp {
-        Exp(.switchCase) {
-            hasMansard
-            Exp(.subtract) { height; mansardDepth }
-            capBase
-        }
-    }
+    private static var wallTop: Exp { capBase }
 
     private static var capBase: Exp {
         Exp(.max) { base; Exp(.subtract) { height; capDepth } }
@@ -95,25 +76,6 @@ struct PlainBuildings: MapStyleContent {
     var body: some MapStyleContent {
         VectorSource(id: Self.source)
             .url("mapbox://mapbox.mapbox-streets-v8")
-
-        FillExtrusionLayer(id: "plain-buildings-mansard", source: Self.source)
-            .sourceLayer("building")
-            .slot(.middle)
-            .minZoom(15)
-            .filter(Exp(.all) { Self.extruded; Self.hasMansard })
-            // Plain slate: a dormer pattern can't line up with the storey (patterns tile in screen
-            // space), so dormers came out sliced in half at the roof edge.
-            .fillExtrusionColor(Exp(.match) {
-                Self.roofTone
-                1
-                FacadeTile.roof(palette, tone: 1).cssHex
-                FacadeTile.roof(palette, tone: 0).cssHex
-            })
-            .fillExtrusionBase(Self.wallTop)
-            .fillExtrusionHeight(Self.capBase)
-            .fillExtrusionOpacity(Self.fadeIn)
-            .fillExtrusionVerticalGradient(false)
-            .fillExtrusionCastShadows(true)
 
         FillExtrusionLayer(id: "plain-buildings-roof", source: Self.source)
             .sourceLayer("building")
@@ -145,7 +107,7 @@ struct PlainBuildings: MapStyleContent {
             .fillExtrusionBase(Self.base)
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
-            .fillExtrusionAmbientOcclusionIntensity(0.3)
+            .fillExtrusionAmbientOcclusionIntensity(0)
             .fillExtrusionCastShadows(true)
     }
 }

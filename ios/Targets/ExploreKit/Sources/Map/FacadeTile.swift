@@ -8,7 +8,7 @@ struct FacadeTile: MapStyleContent {
     var palette: CityPalette
 
     /// Wall tones × window styles; keep in step with the image list in `body`.
-    static let tones = 5, styles = 2
+    static let tones = 5, styles = 3
     static var facadeCount: Int { tones * styles }
     static let roofTones = 2
 
@@ -29,6 +29,11 @@ struct FacadeTile: MapStyleContent {
         facade(7)
         facade(8)
         facade(9)
+        facade(10)
+        facade(11)
+        facade(12)
+        facade(13)
+        facade(14)
     }
 
     // MARK: Colours
@@ -52,41 +57,44 @@ struct FacadeTile: MapStyleContent {
 
     // MARK: Tiles
 
-    /// One window bay (16 px at @3x). Style 0: a framed sash window. Style 1: a taller window under
-    /// a light string course, which gives the façade storey bands.
+    /// One window bay, 32 px at @3x (patterns tile in screen space and want power-of-two sizes).
+    /// The bay is mostly wall so façades don't turn into a dense window grid.
+    /// Style 0: one sash window. Style 1: a pair of narrow windows. Style 2: a tall window under a
+    /// light string course, which gives the façade storey bands.
     static func render(_ p: CityPalette, variant: Int) -> UIImage {
-        let size = CGSize(width: 16.0 / 3, height: 16.0 / 3)
+        let size = CGSize(width: 32.0 / 3, height: 32.0 / 3)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 3
         let tone = variant % tones, style = (variant / tones) % styles
         let wallColor = wall(p, tone: tone)
-        let trim = tone == 4 ? UIColor(white: 0.96, alpha: 0.85) : UIColor(white: 1, alpha: 0.45)
+        let trim = tone == 4 ? UIColor(white: 0.96, alpha: 0.8) : UIColor(white: 1, alpha: 0.4)
         return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
             wallColor.setFill()
             ctx.fill(CGRect(origin: .zero, size: size))
 
-            if style == 0 {
-                let frame = CGRect(x: 1.5, y: 1.0, width: 2.33, height: 3.0)
+            func window(_ r: CGRect, bar: Bool) {
                 trim.setFill()
-                ctx.fill(frame.insetBy(dx: -0.35, dy: -0.35))
+                ctx.fill(r.insetBy(dx: -0.34, dy: -0.34))
                 glass(p).setFill()
-                ctx.fill(frame)
-                UIColor(white: 1, alpha: 0.35).setFill()
-                ctx.fill(CGRect(x: frame.minX, y: frame.midY - 0.17, width: frame.width, height: 0.34))
-                UIColor(white: 0, alpha: 0.10).setFill()
-                ctx.fill(CGRect(x: frame.minX - 0.35, y: frame.maxY + 0.35, width: frame.width + 0.7, height: 0.35))
-            } else {
-                UIColor(white: 1, alpha: 0.28).setFill()
-                ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: 0.5))          // string course
-                UIColor(white: 0, alpha: 0.12).setFill()
-                ctx.fill(CGRect(x: 0, y: 0.5, width: size.width, height: 0.25))       // its shadow
-                let frame = CGRect(x: 1.83, y: 1.33, width: 1.67, height: 3.33)
-                trim.setFill()
-                ctx.fill(frame.insetBy(dx: -0.34, dy: -0.34))
-                glass(p).setFill()
-                ctx.fill(frame)
-                UIColor(white: 1, alpha: 0.3).setFill()
-                ctx.fill(CGRect(x: frame.midX - 0.17, y: frame.minY, width: 0.34, height: frame.height))
+                ctx.fill(r)
+                if bar {
+                    UIColor(white: 1, alpha: 0.3).setFill()
+                    ctx.fill(CGRect(x: r.minX, y: r.midY - 0.17, width: r.width, height: 0.34))
+                }
+                UIColor(white: 0, alpha: 0.1).setFill()
+                ctx.fill(CGRect(x: r.minX - 0.34, y: r.maxY + 0.34, width: r.width + 0.68, height: 0.34))
+            }
+
+            switch style {
+            case 1:
+                window(CGRect(x: 3.0, y: 3.0, width: 1.67, height: 4.33), bar: false)
+                window(CGRect(x: 6.0, y: 3.0, width: 1.67, height: 4.33), bar: false)
+            case 2:
+                UIColor(white: 1, alpha: 0.22).setFill()
+                ctx.fill(CGRect(x: 0, y: 1.0, width: size.width, height: 0.67))
+                window(CGRect(x: 4.0, y: 3.0, width: 2.67, height: 5.0), bar: true)
+            default:
+                window(CGRect(x: 3.67, y: 3.0, width: 3.33, height: 4.33), bar: true)
             }
         }
     }
