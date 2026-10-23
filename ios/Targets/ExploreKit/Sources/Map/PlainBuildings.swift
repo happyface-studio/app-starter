@@ -33,7 +33,10 @@ struct PlainBuildings: MapStyleContent {
 
     /// The slate cap is the top 0.4 m *inside* each building, so it never pokes into a part
     /// stacked on top (that overlap flickered into a checkered roof).
-    static let capDepth = 0.4
+    static let capDepth: Double = {
+        let v = UserDefaults.standard.double(forKey: "capDepth")
+        return v > 0 ? v : 0.4
+    }()
 
     /// Hospitals, schools, offices and the like are often split into many footprints; giving each
     /// part its own colour made a patchwork, so they all stay in the palette's sand (tone 0).
