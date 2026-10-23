@@ -115,12 +115,14 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            .fillExtrusionColor(Exp(.match) {
-                Self.roofTone
-                1
-                FacadeTile.roof(palette, tone: 1).cssHex
-                FacadeTile.roof(palette, tone: 0).cssHex
-            })
+            .fillExtrusionColor(UserDefaults.standard.bool(forKey: "plainCap")
+                ? Exp(.toColor) { FacadeTile.roof(palette, tone: 0).cssHex }
+                : Exp(.match) {
+                    Self.roofTone
+                    1
+                    FacadeTile.roof(palette, tone: 1).cssHex
+                    FacadeTile.roof(palette, tone: 0).cssHex
+                })
             .fillExtrusionBase(Self.capBase)
             .fillExtrusionHeight(Self.height)
             .fillExtrusionOpacity(Self.fadeIn)
