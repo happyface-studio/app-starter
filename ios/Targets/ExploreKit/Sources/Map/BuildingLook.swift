@@ -39,7 +39,7 @@ enum BuildingLook {
     }
 
     /// `-restBuildings NO` falls back to our flat window-pattern extrusions (`PlainBuildings`).
-    static let restEnabled = UserDefaults.standard.object(forKey: "restBuildings") as? Bool ?? true
+    static let restEnabled = UserDefaults.standard.object(forKey: "restBuildings") == nil || UserDefaults.standard.bool(forKey: "restBuildings")
 
     static func wallColour(fallback: Any) -> Any { byID(tags?.wall ?? [:], fallback: fallback) }
     static func roofColour(fallback: Any) -> Any { byID(tags?.roofColour ?? [:], fallback: fallback) }
@@ -61,8 +61,11 @@ enum BuildingLook {
     static func rest(from procedural: [String: Any], palette p: CityPalette) -> [String: Any] {
         var layer = procedural
         layer["id"] = "procedural-buildings-rest"
-        let original = procedural["filter"] ?? true
-        layer["filter"] = ["all", ["==", ["get", "extrude"], "true"], ["!=", ["get", "underground"], "true"], ["!", original]] as [Any]
+        // The procedural tileset only carries the buildings Standard draws procedurally; the rest
+        // are in Streets' building layer (what Standard's flat `3d-building` layer draws).
+        layer["source"] = "composite"
+        layer["source-layer"] = "building"
+        layer["filter"] = ["all", ["==", ["get", "extrude"], "true"], ["==", ["get", "underground"], "false"]] as [Any]
 
         var layout = layer["layout"] as? [String: Any] ?? [:]
         let house: [Any] = ["all", ["<=", ["get", "height"], 25], ["<=", ["get", "area"], 500]]
