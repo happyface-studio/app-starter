@@ -36,7 +36,6 @@ struct CityMapView: View {
                 Kerbs(palette: store.renderPalette)
                 FacadeTile(palette: store.renderPalette)
                 PlainBuildings(palette: store.renderPalette)
-                ChimneyLayers(palette: store.renderPalette)
                 StreetTextures()
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
                 PuffyTrees(season: LiveConditions.shared.season)
@@ -86,16 +85,12 @@ struct CityMapView: View {
             CloudDrift.shared.styleLoaded()
             LivingCity.shared.styleLoaded()
             TrafficSim.shared.styleLoaded()
-            Chimneys.shared.styleLoaded(map: proxy.map)
             // `-hide layer1,layer2` hides layers (performance bisecting).
             if let map = proxy.map, let hide = UserDefaults.standard.string(forKey: "hide") {
                 for id in hide.split(separator: ",") {
                     try? map.setLayerProperty(for: String(id), property: "visibility", value: "none")
                 }
             }
-        }
-        .onMapIdle { _ in
-            if let map = proxy.map { Chimneys.shared.refresh(map: map) }
         }
         .onMapLoaded { _ in
             WaterDrift.shared.start(map: proxy.map)

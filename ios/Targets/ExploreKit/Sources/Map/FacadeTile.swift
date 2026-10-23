@@ -1,7 +1,7 @@
 import MapboxMaps
 import UIKit
 
-/// Window bays and mansard tiles for the buildings Standard draws without façades. Each building
+/// Window bays for the buildings Standard draws without façades. Each building
 /// picks one of several wall tones and window styles (and one of two slate tones for its roof), so
 /// a street reads as a row of different houses rather than one repeated block.
 struct FacadeTile: MapStyleContent {
@@ -13,14 +13,9 @@ struct FacadeTile: MapStyleContent {
     static let roofTones = 2
 
     static func facadeID(_ p: CityPalette, _ i: Int) -> String { "facade-\(p.id)-\(i)" }
-    static func mansardID(_ p: CityPalette, _ i: Int) -> String { "mansard-\(p.id)-\(i)" }
 
     private func facade(_ i: Int) -> StyleImage {
         StyleImage(id: Self.facadeID(palette, i), image: Self.render(palette, variant: i))
-    }
-
-    private func mansard(_ i: Int) -> StyleImage {
-        StyleImage(id: Self.mansardID(palette, i), image: Self.mansard(palette, tone: i))
     }
 
     var body: some MapStyleContent {
@@ -34,8 +29,6 @@ struct FacadeTile: MapStyleContent {
         facade(7)
         facade(8)
         facade(9)
-        mansard(0)
-        mansard(1)
     }
 
     // MARK: Colours
@@ -58,31 +51,6 @@ struct FacadeTile: MapStyleContent {
     }
 
     // MARK: Tiles
-
-    /// Slate with one cream dormer every two bays.
-    static func mansard(_ p: CityPalette, tone: Int) -> UIImage {
-        // Patterns tile in screen points and want power-of-two pixel sizes (32 × 16 px at @3x).
-        let size = CGSize(width: 32.0 / 3, height: 16.0 / 3)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 3
-        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
-            roof(p, tone: tone).setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-            let dormer = CGRect(x: 4.0, y: 1.67, width: 2.33, height: 2.67)
-            UIColor(hex: p.buildings).blended(with: .white, amount: 0.25).setFill()
-            let pediment = UIBezierPath()
-            pediment.move(to: CGPoint(x: dormer.minX - 0.34, y: dormer.minY + 0.2))
-            pediment.addLine(to: CGPoint(x: dormer.midX, y: dormer.minY - 0.8))
-            pediment.addLine(to: CGPoint(x: dormer.maxX + 0.34, y: dormer.minY + 0.2))
-            pediment.close()
-            pediment.fill()
-            ctx.fill(dormer)
-            glass(p).setFill()
-            ctx.fill(CGRect(x: dormer.minX + 0.5, y: dormer.minY + 0.5, width: dormer.width - 1.0, height: dormer.height - 0.84))
-            UIColor(white: 0, alpha: 0.2).setFill()
-            ctx.fill(CGRect(x: dormer.minX, y: dormer.maxY, width: dormer.width, height: 0.34))
-        }
-    }
 
     /// One window bay (16 px at @3x). Style 0: a framed sash window. Style 1: a taller window under
     /// a light string course, which gives the façade storey bands.

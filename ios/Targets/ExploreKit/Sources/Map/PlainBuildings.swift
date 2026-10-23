@@ -53,8 +53,8 @@ struct PlainBuildings: MapStyleContent {
     }
     private static var roofTone: Exp { pick(FacadeTile.roofTones, idWeight: 3) }
 
-    /// Houses and Gründerzeit blocks (10–32 m): about seven in ten get a slate mansard storey with
-    /// dormers as their top floor, the rest keep a flat roof.
+    /// Houses and Gründerzeit blocks (10–32 m): about seven in ten get a slate top storey (a mansard
+    /// seen from above), the rest keep a flat roof.
     static let mansardDepth = 4.2   // includes the cap, so the slate storey itself is 2.7 m
     private static var hasMansard: Exp {
         Exp(.all) {
@@ -101,9 +101,13 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Exp(.all) { Self.extruded; Self.hasMansard })
-            .fillExtrusionPattern(Exp(.concat) {
-                "mansard-\(palette.id)-"
-                Exp(.toString) { Self.roofTone }
+            // Plain slate: a dormer pattern can't line up with the storey (patterns tile in screen
+            // space), so dormers came out sliced in half at the roof edge.
+            .fillExtrusionColor(Exp(.match) {
+                Self.roofTone
+                1
+                FacadeTile.roof(palette, tone: 1).cssHex
+                FacadeTile.roof(palette, tone: 0).cssHex
             })
             .fillExtrusionBase(Self.wallTop)
             .fillExtrusionHeight(Self.capBase)
