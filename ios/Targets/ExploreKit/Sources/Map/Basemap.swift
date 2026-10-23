@@ -70,6 +70,9 @@ final class Basemap {
             default: patchStreets(&layers[i], id: id, palette)
             }
         }
+        if BuildingLook.restEnabled, let i = layers.firstIndex(where: { $0["id"] as? String == "procedural-buildings" }) {
+            layers.insert(BuildingLook.rest(from: layers[i], palette: palette), at: i + 1)
+        }
         if let i = layers.firstIndex(where: { $0["id"] as? String == "3d-building" }) {
             if !UserDefaults.standard.bool(forKey: "standardPlain") { patchPlainBuildings(&layers, at: i, palette) }
         }
@@ -232,13 +235,12 @@ final class Basemap {
             // the sun darken like the toy-map reference. Mapped pitched roofs stay; big blocks and
             // towers keep parapets, as in the reference.
             let pitched: [Any] = ["match", ["get", "roof_type"], ["gabled", "hipped", "pyramidal", "skillion"], true, false]
-            layout["building-roof-shape"] = [
+            layout["building-roof-shape"] = BuildingLook.roofShape(fallback: [
                 "case",
-                ["all", ["<=", ["get", "area"], 200], [">=", ["get", "height"], 100]], "flat",
                 ["all", ["has", "roof_type"], pitched], ["get", "roof_type"],
                 ["all", ["<=", ["get", "height"], 30], ["<=", ["get", "area"], 600]], "hipped",
                 "parapet",
-            ] as [Any]
+            ] as [Any])
             layer["layout"] = layout
         }
 
@@ -254,6 +256,8 @@ final class Basemap {
             }
             body[body.count - 1] = parts
             color[color.count - 1] = body
+            BuildingLook.editPart("wall", in: &color) { BuildingLook.wallColour(fallback: $0) }
+            BuildingLook.editPart("roof", in: &color) { BuildingLook.roofColour(fallback: $0) }
             paint["building-color"] = color
         }
 
