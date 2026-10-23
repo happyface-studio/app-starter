@@ -48,13 +48,14 @@ struct CityMapView: View {
                 Yards(palette: store.renderPalette)
                 GroundTextures(palette: store.renderPalette)
                 Kerbs(palette: store.renderPalette)
+                // 2D street layers before the 3D ones in the same slot, or they draw over buildings.
+                StreetTextures()
+                RoadMarkings()
                 FacadeTile(palette: facadePalette, night: isDark)
                 if !UserDefaults.standard.bool(forKey: "standardPlain")  {
                     PlainBuildings(palette: facadePalette, night: isDark)
                     RoofExtras()
                 }
-                StreetTextures()
-                RoadMarkings()
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
                 PuffyTrees(season: LiveConditions.shared.season)
                 StreetFurniture(mood: store.mood)
