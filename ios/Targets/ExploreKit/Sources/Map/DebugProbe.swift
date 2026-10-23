@@ -1,7 +1,7 @@
 import MapboxMaps
 
 /// `-probe x,y;x,y` (screen points) prints which layers and features are under those points once
-/// the map settles. For look debugging only.
+/// the map has loaded (12 s). For look debugging only.
 @MainActor
 enum DebugProbe {
     private static var done = false
@@ -17,7 +17,7 @@ enum DebugProbe {
                                           options: RenderedQueryOptions(layerIds: nil, filter: nil)) { result in
                 guard case .success(let hits) = result else { return }
                 for h in hits.prefix(6) {
-                    print("PROBE", pt, h.queriedFeature.sourceLayer ?? "-", h.layers, String(describing: h.queriedFeature.feature.properties))
+                    NSLog("PROBE %@", "\(pt) \(h.queriedFeature.sourceLayer ?? "-") \(h.layers) \(String(describing: h.queriedFeature.feature.properties))")
                 }
             }
         }

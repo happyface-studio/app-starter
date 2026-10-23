@@ -100,6 +100,9 @@ struct CityMapView: View {
             TrafficSim.shared.start(map: proxy.map)
             CloudDrift.shared.start(map: proxy.map)
             LivingCity.shared.start(map: proxy.map)
+            if let map = proxy.map {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 12) { DebugProbe.run(map) }
+            }
             // Performance check: `-perfOrbit YES` slowly turns the camera half a circle.
             if UserDefaults.standard.bool(forKey: "perfOrbit"), let camera = proxy.camera, let map = proxy.map {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
@@ -111,9 +114,6 @@ struct CityMapView: View {
             } else if LandmarkDump.isEnabled, let map = proxy.map {
                 LandmarkDump.run(map: map) { opts in map.setCamera(to: opts) }
             }
-        }
-        .onMapIdle { _ in
-            if let map = proxy.map { DebugProbe.run(map) }
         }
         .onMapTapGesture { _ in
             if store.selection != nil { store.selection = nil }
