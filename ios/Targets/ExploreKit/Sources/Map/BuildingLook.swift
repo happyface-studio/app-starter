@@ -65,7 +65,12 @@ enum BuildingLook {
         // are in Streets' building layer (what Standard's flat `3d-building` layer draws).
         layer["source"] = "composite"
         layer["source-layer"] = "building"
-        layer["filter"] = ["all", ["==", ["get", "extrude"], "true"], ["==", ["get", "underground"], "false"]] as [Any]
+        let roofs = tags?.roof ?? [:]
+        let pitched = roofs.filter { $0.key != "flat" }.flatMap(\.value)
+        let flat = roofs["flat"] ?? []
+        func among(_ ids: [Int]) -> Any { ids.isEmpty ? false : ["match", ["id"], ids, true, false] as [Any] }
+        layer["filter"] = ["all", ["==", ["get", "extrude"], "true"], ["==", ["get", "underground"], "false"],
+                           ["any", ["<=", ["get", "height"], 22], among(pitched)], ["!", among(flat)]] as [Any]
 
         var layout = layer["layout"] as? [String: Any] ?? [:]
         let houseRoof: [Any] = ["case", ["==", ["%", ["to-number", ["id"], 0], 3], 0], "hipped", "gabled"]
