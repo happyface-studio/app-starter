@@ -8,7 +8,7 @@ struct FacadeTile: MapStyleContent {
     var palette: CityPalette
 
     /// Wall tones × window styles; keep in step with the image list in `body`.
-    static let tones = 5, styles = 3
+    static let tones = 8, styles = 3
     static var facadeCount: Int { tones * styles }
     static let roofTones = 2
 
@@ -34,11 +34,21 @@ struct FacadeTile: MapStyleContent {
         facade(12)
         facade(13)
         facade(14)
+        facade(15)
+        facade(16)
+        facade(17)
+        facade(18)
+        facade(19)
+        facade(20)
+        facade(21)
+        facade(22)
+        facade(23)
     }
 
     // MARK: Colours
 
-    /// Sand (the palette's own), pale cream, warm ochre, light stone and a soft London brick.
+    /// Sand (the palette's own), pale cream, warm ochre, light stone, a soft London brick, and
+    /// off-white, light grey and warm grey plaster, which most Frankfurt façades actually are.
     static func wall(_ p: CityPalette, tone: Int) -> UIColor {
         let base = UIColor(hex: p.buildings)
         switch tone % tones {
@@ -46,6 +56,9 @@ struct FacadeTile: MapStyleContent {
         case 2: return base.blended(with: UIColor(hex: 0xD99E5E), amount: 0.55)
         case 3: return base.blended(with: UIColor(hex: 0xE2DCD2), amount: 0.8)
         case 4: return base.blended(with: UIColor(hex: 0xB5735A), amount: 0.68)
+        case 5: return base.blended(with: UIColor(hex: 0xF6F2EA), amount: 0.88)
+        case 6: return base.blended(with: UIColor(hex: 0xDCDBD7), amount: 0.85)
+        case 7: return base.blended(with: UIColor(hex: 0xCFC8BD), amount: 0.8)
         default: return base
         }
     }
