@@ -71,7 +71,7 @@ struct RoadMarkings: MapStyleContent {
             .filter(Exp(.all) { Self.mainFilter; Exp(.neq) { Exp(.get) { "oneway" }; "true" } })
             .lineColor(Self.paint)
             .lineWidth(RoadWidth.exp { 0.04 * $0 + 0.3 })
-            .lineDasharray([4, 5])
+            .lineDashArray([4, 5])
             .lineOpacity(Self.fadeIn)
 
         edge(1)
