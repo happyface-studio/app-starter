@@ -5,7 +5,7 @@
 
 Without this, everything between streets and buildings is bare 'land' colour. Here:
   paved   residential and commercial blocks away from the street: a light paved yard
-  garden  the same blocks, kept 1.6 m off the buildings (so a paved rim runs round each house),
+  garden  the same blocks, kept 2.6 m off the buildings (so a paved rim runs round each house),
           plus OSM gardens, allotments and grass: lawn with a hedge outline
   parking surface car parks: asphalt
   tree    a scatter of garden trees and bushes inside the gardens (model id in `m`)
@@ -118,7 +118,7 @@ def main():
             p = way_polygon(g)
             if p is not None and not p.is_empty:
                 bpolys.append(p)
-    houses = unary_union([p.buffer(1.6, 2) for p in bpolys])
+    houses = unary_union([p.buffer(2.6, 2) for p in bpolys])
     print("buildings buffered", len(bpolys))
 
     blocks = unary_union(areas["block"] + areas["court"]).difference(roads)
@@ -146,7 +146,7 @@ def main():
 
     # Garden trees and bushes, kept off walls, existing trees and each other.
     near = STRtree([Point(*xy(f["geometry"]["coordinates"][1], f["geometry"]["coordinates"][0])) for f in trees_existing])
-    inner = gardens.buffer(-2.5)
+    inner = gardens.buffer(-2.0)
     placed = []
     n = 0
     for g in getattr(inner, "geoms", [inner]):
@@ -161,7 +161,7 @@ def main():
             while x < maxx:
                 px, py = x + random.uniform(-4, 4), y + random.uniform(-4, 4)
                 x += step
-                if random.random() > 0.2 or not pg.contains(Point(px, py)):
+                if random.random() > 0.32 or not pg.contains(Point(px, py)):
                     continue
                 if len(near.query(Point(px, py).buffer(5))) or any(math.hypot(px - a, py - b) < 6 for a, b in placed[-40:]):
                     continue

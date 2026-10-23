@@ -24,7 +24,8 @@ struct Yards: MapStyleContent {
         }
     }
 
-    private var lawn: UIColor { UIColor(hex: palette.green).blended(with: UIColor(hex: palette.land), amount: 0.3) }
+    /// Softer than the parks, so real parks still stand out.
+    private var lawn: UIColor { UIColor(hex: palette.green).blended(with: UIColor(hex: palette.land), amount: 0.55) }
     private var hedge: UIColor { UIColor(hex: palette.green).blended(with: UIColor(hex: 0x3F5A2A), amount: 0.45) }
     private var yard: UIColor { UIColor(hex: palette.paving).blended(with: UIColor(hex: palette.land), amount: 0.45) }
     private var asphalt: UIColor { UIColor(hex: palette.roads).blended(with: UIColor(hex: 0x9A9AA2), amount: 0.4) }
@@ -72,6 +73,7 @@ struct Yards: MapStyleContent {
                 .minZoom(14)
                 .filter(Self.kind("garden"))
                 .fillPattern("tex-grass")
+                .fillOpacity(0.7)
 
             // A clipped hedge round every garden.
             LineLayer(id: "yards-hedge", source: Self.source)
