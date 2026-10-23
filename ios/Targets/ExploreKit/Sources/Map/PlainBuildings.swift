@@ -15,10 +15,7 @@ struct PlainBuildings: MapStyleContent {
     }
 
     /// Real height plus up to 1.6 m per building, so a terrace reads as separate houses.
-    private static let height = Exp(.sum) {
-        Exp(.number) { Exp(.get) { "height" } }
-        Exp(.random) { 0; 1.6; Exp(.id) }
-    }
+    private static let height = Exp.json(["+", ["number", ["get", "height"]], ["random", 0, 1.6, ["id"]]] as [Any])
 
     /// A stable per-building number 0..<n, so neighbours in a terrace differ but each building
     /// keeps its look. Uses `building_id`, which all stacked parts of one building share, so a
