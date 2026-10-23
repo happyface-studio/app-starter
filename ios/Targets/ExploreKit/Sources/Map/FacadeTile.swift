@@ -44,10 +44,10 @@ struct FacadeTile: MapStyleContent {
     static func wall(_ p: CityPalette, tone: Int) -> UIColor {
         let base = UIColor(hex: p.buildings)
         switch tone % tones {
-        case 1: return base.blended(with: UIColor(hex: 0xF7EEDC), amount: 0.55)
-        case 2: return base.blended(with: UIColor(hex: 0xD9A56C), amount: 0.45)
-        case 3: return base.blended(with: UIColor(hex: 0xE6DDCF), amount: 0.65)
-        case 4: return base.blended(with: UIColor(hex: 0xB9785C), amount: 0.6)
+        case 1: return base.blended(with: UIColor(hex: 0xF8F0E0), amount: 0.7)
+        case 2: return base.blended(with: UIColor(hex: 0xD99E5E), amount: 0.55)
+        case 3: return base.blended(with: UIColor(hex: 0xE2DCD2), amount: 0.8)
+        case 4: return base.blended(with: UIColor(hex: 0xB5735A), amount: 0.68)
         default: return base
         }
     }

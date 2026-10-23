@@ -17,16 +17,23 @@ struct PlainBuildings: MapStyleContent {
     private static let height = Exp(.number) { Exp(.get) { "height" } }
 
     /// A stable per-building number 0..<n, so neighbours in a terrace differ but each building
-    /// keeps its look. Mixes the feature id with its height (ids can be missing).
-    private static func pick(_ n: Int, idWeight: Double, heightWeight: Double) -> Exp {
+    /// keeps its look. Uses `building_id`, which all stacked parts of one building share, so a
+    /// building made of parts gets one look instead of a patchwork.
+    private static func pick(_ n: Int, idWeight: Double) -> Exp {
         Exp(.mod) {
-            Exp(.sum) {
-                Exp(.product) { Exp(.coalesce) { Exp(.id); 0 }; idWeight }
-                Exp(.round) { Exp(.product) { height; heightWeight } }
+            Exp(.product) {
+                Exp(.coalesce) { Exp(.get) { "building_id" }; Exp(.id); 0 }
+                idWeight
             }
             Double(n)
         }
     }
+
+    private static var isPart: Exp { Exp(.eq) { Exp(.get) { "type" }; "building:part" } }
+
+    /// The slate cap is the top 0.4 m *inside* each building, so it never pokes into a part
+    /// stacked on top (that overlap flickered into a checkered roof).
+    static let capDepth = 0.4
 
     /// Hospitals, schools, offices and the like are often split into many footprints; giving each
     /// part its own colour made a patchwork, so they all stay in the palette's sand (tone 0).
@@ -39,11 +46,11 @@ struct PlainBuildings: MapStyleContent {
     private static var facadeVariant: Exp {
         Exp(.switchCase) {
             Exp(.inExpression) { Exp(.get) { "type" }; Exp(.literal) { institutional } }
-            Exp(.product) { pick(FacadeTile.styles, idWeight: 1, heightWeight: 7); Double(FacadeTile.tones) }
-            pick(FacadeTile.facadeCount, idWeight: 1, heightWeight: 7)
+            Exp(.product) { pick(FacadeTile.styles, idWeight: 7); Double(FacadeTile.tones) }
+            pick(FacadeTile.facadeCount, idWeight: 1)
         }
     }
-    private static var roofTone: Exp { pick(FacadeTile.roofTones, idWeight: 1, heightWeight: 5) }
+    private static var roofTone: Exp { pick(FacadeTile.roofTones, idWeight: 3) }
 
     /// Houses and Gründerzeit blocks (10–32 m): about seven in ten get a slate mansard storey with
     /// dormers as their top floor, the rest keep a flat roof.
@@ -52,7 +59,8 @@ struct PlainBuildings: MapStyleContent {
         Exp(.all) {
             Exp(.gte) { height; 10 }
             Exp(.lte) { height; 32 }
-            Exp(.gte) { pick(10, idWeight: 3, heightWeight: 11); 3 }
+            Exp(.not) { isPart }
+            Exp(.gte) { pick(10, idWeight: 13); 3 }
         }
     }
 
@@ -60,8 +68,12 @@ struct PlainBuildings: MapStyleContent {
         Exp(.switchCase) {
             hasMansard
             Exp(.subtract) { height; mansardDepth }
-            height
+            capBase
         }
+    }
+
+    private static var capBase: Exp {
+        Exp(.max) { base; Exp(.subtract) { height; capDepth } }
     }
 
     private static var base: Exp {
@@ -109,7 +121,7 @@ struct PlainBuildings: MapStyleContent {
                 Exp(.toString) { Self.roofTone }
             })
             .fillExtrusionBase(Self.wallTop)
-            .fillExtrusionHeight(Self.height)
+            .fillExtrusionHeight(Self.capBase)
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionCastShadows(true)
@@ -125,8 +137,8 @@ struct PlainBuildings: MapStyleContent {
                 FacadeTile.roof(palette, tone: 1).cssHex
                 FacadeTile.roof(palette, tone: 0).cssHex
             })
-            .fillExtrusionBase(Self.height)
-            .fillExtrusionHeight(Exp(.sum) { Self.height; 0.4 })
+            .fillExtrusionBase(Self.capBase)
+            .fillExtrusionHeight(Self.height)
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionCastShadows(false)
