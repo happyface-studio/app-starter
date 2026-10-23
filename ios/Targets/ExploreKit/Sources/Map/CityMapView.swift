@@ -25,6 +25,14 @@ struct CityMapView: View {
 
     private var isDark: Bool { store.mood == .night || store.mood == .dusk }
 
+    /// Night façades are separate images (a style image keeps its pixels when only its content
+    /// changes), so they get their own ids via the palette id.
+    private var facadePalette: CityPalette {
+        var p = store.renderPalette
+        if isDark { p.id += "-n" }
+        return p
+    }
+
     private var map: some View {
         MapReader { proxy in
         Map(viewport: $viewport) {
@@ -40,9 +48,9 @@ struct CityMapView: View {
                 Yards(palette: store.renderPalette)
                 GroundTextures(palette: store.renderPalette)
                 Kerbs(palette: store.renderPalette)
-                FacadeTile(palette: store.renderPalette, night: isDark)
+                FacadeTile(palette: facadePalette, night: isDark)
                 if !UserDefaults.standard.bool(forKey: "standardPlain")  {
-                    PlainBuildings(palette: store.renderPalette, night: isDark)
+                    PlainBuildings(palette: facadePalette, night: isDark)
                     RoofExtras()
                 }
                 StreetTextures()
@@ -96,7 +104,7 @@ struct CityMapView: View {
             LivingCity.shared.styleLoaded()
             TrafficSim.shared.styleLoaded()
             RoofBuilder.shared.styleLoaded(palette: store.renderPalette)
-            if let map = proxy.map { FacadeTile.addOSMImages(map, palette: store.renderPalette, night: isDark) }
+            if let map = proxy.map { FacadeTile.addOSMImages(map, palette: facadePalette, night: isDark) }
             // `-hide layer1,layer2` hides layers (performance bisecting).
             if let map = proxy.map, let hide = UserDefaults.standard.string(forKey: "hide") {
                 for id in hide.split(separator: ",") {
