@@ -79,7 +79,9 @@ struct Kerbs: MapStyleContent {
             }
             Exp(.match) {
                 Exp(.get) { "structure" }
-                ["none", "ford"]
+                // Bridges too: OSM maps most bridge footways as `sidewalk=*` on the road, so without
+                // our pavement band a bridge was just a bare carriageway over the water.
+                ["none", "ford", "bridge"]
                 true
                 false
             }
