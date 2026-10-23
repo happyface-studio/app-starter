@@ -2,8 +2,11 @@ import Foundation
 
 /// Real roof shapes and façade/roof colours from OSM (`ios/tools/bake_building_tags.py`), folded
 /// into Standard's procedural building layer as `match` expressions on the feature id, which is
-/// the OSM way id. Also builds the extra procedural layer that gives every other building the
-/// same windows and roofs as the centre, instead of a flat extrusion.
+/// the OSM way id.
+///
+/// Tried and dropped: a second procedural layer on Streets' building data for the buildings
+/// Standard draws flat. It renders, but without windows or roof shapes (those need the
+/// procedural tileset), and it hides any extrusion under its footprint.
 enum BuildingLook {
     private struct Tags: Decodable {
         var roof: [String: [Int]]
@@ -18,14 +21,17 @@ enum BuildingLook {
     }()
 
     /// `["match", ["id"], [ids], value, …, fallback]`, or the fallback alone if there's no data.
-    private static func byID(_ groups: [String: [Int]], fallback: Any) -> Any {
+    /// OSM wall colours present in the data (for building façade images).
+    static var wallColours: [String] { (tags?.wall.keys).map { Array($0).sorted() } ?? [] }
+
+    static func byID(_ groups: [String: [Int]], value: (String) -> Any = { $0 }, fallback: Any) -> Any {
         var seen = Set<Int>()
         var args: [Any] = ["match", ["id"]]
-        for (value, ids) in groups.sorted(by: { $0.key < $1.key }) {
+        for (key, ids) in groups.sorted(by: { $0.key < $1.key }) {
             let fresh = ids.filter { seen.insert($0).inserted }
             guard !fresh.isEmpty else { continue }
             args.append(fresh)
-            args.append(value)
+            args.append(value(key))
         }
         guard args.count > 2 else { return fallback }
         args.append(fallback)
@@ -38,10 +44,10 @@ enum BuildingLook {
         return ["case", ["all", ["<=", ["get", "area"], 200], [">=", ["get", "height"], 100]], "flat", mapped] as [Any]
     }
 
-    /// `-restBuildings NO` falls back to our flat window-pattern extrusions (`PlainBuildings`).
-    static let restEnabled = UserDefaults.standard.object(forKey: "restBuildings") == nil || UserDefaults.standard.bool(forKey: "restBuildings")
-
     static func wallColour(fallback: Any) -> Any { byID(tags?.wall ?? [:], fallback: fallback) }
+    static func wallImage(_ name: (String) -> String, fallback: Any) -> Any {
+        byID(tags?.wall ?? [:], value: name, fallback: fallback)
+    }
     static func roofColour(fallback: Any) -> Any { byID(tags?.roofColour ?? [:], fallback: fallback) }
 
     /// Replaces the value for `part` in the `["match", ["get", "building-part"], …]` inside
@@ -52,45 +58,5 @@ enum BuildingLook {
         parts[i + 1] = edit(parts[i + 1])
         body[body.count - 1] = parts
         color[color.count - 1] = body
-    }
-
-    /// A copy of the patched procedural layer for the buildings it leaves out (Standard draws those
-    /// as flat extrusions). Houses get a gabled or hipped roof unless OSM says otherwise, each
-    /// building one of the varied wall tones, and a little height variation so terraces read as
-    /// separate houses.
-    static func rest(from procedural: [String: Any], palette p: CityPalette) -> [String: Any] {
-        var layer = procedural
-        layer["id"] = "procedural-buildings-rest"
-        // The procedural tileset only carries the buildings Standard draws procedurally; the rest
-        // are in Streets' building layer (what Standard's flat `3d-building` layer draws).
-        layer["source"] = "composite"
-        layer["source-layer"] = "building"
-        let roofs = tags?.roof ?? [:]
-        let pitched = roofs.filter { $0.key != "flat" }.flatMap(\.value)
-        let flat = roofs["flat"] ?? []
-        func among(_ ids: [Int]) -> Any { ids.isEmpty ? false : ["match", ["id"], ids, true, false] as [Any] }
-        layer["filter"] = ["all", ["==", ["get", "extrude"], "true"], ["==", ["get", "underground"], "false"],
-                           ["any", ["<=", ["get", "height"], 22], among(pitched)], ["!", among(flat)]] as [Any]
-
-        var layout = layer["layout"] as? [String: Any] ?? [:]
-        let houseRoof: [Any] = ["case", ["==", ["%", ["to-number", ["id"], 0], 3], 0], "hipped", "gabled"]
-        layout["building-roof-shape"] = roofShape(fallback: ["case", ["<=", ["get", "height"], 22], houseRoof, "flat"] as [Any])
-        // Roof only: our window-pattern walls (`PlainBuildings`) stand below, this adds the roof on top.
-        layout["building-base"] = ["get", "height"] as [Any]
-        layout["building-height"] = ["+", ["get", "height"], ["random", 3.5, 5, ["id"]]] as [Any]
-        let wall: [Any] = ["-", ["get", "height"], ["coalesce", ["get", "min_height"], 0]]
-        _ = wall
-        layout["building-facade"] = false
-        layer["layout"] = layout
-
-        var paint = layer["paint"] as? [String: Any] ?? [:]
-        if var color = paint["building-color"] as? [Any] {
-            let tones = (0..<FacadeTile.tones).map { FacadeTile.wall(p, tone: $0).cssHex }
-            let mixed: [Any] = ["to-color", ["at", ["%", ["to-number", ["id"], 0], Double(tones.count)], ["literal", tones]]]
-            editPart("wall", in: &color) { _ in wallColour(fallback: mixed) }
-            paint["building-color"] = color
-        }
-        layer["paint"] = paint
-        return layer
     }
 }

@@ -14,7 +14,11 @@ struct PlainBuildings: MapStyleContent {
         Exp(.eq) { Exp(.get) { "underground" }; "false" }
     }
 
-    private static let height = Exp(.number) { Exp(.get) { "height" } }
+    /// Real height plus up to 1.6 m per building, so a terrace reads as separate houses.
+    private static let height = Exp(.sum) {
+        Exp(.number) { Exp(.get) { "height" } }
+        Exp(.random) { 0; 1.6; Exp(.id) }
+    }
 
     /// A stable per-building number 0..<n, so neighbours in a terrace differ but each building
     /// keeps its look. Uses `building_id`, which all stacked parts of one building share, so a
@@ -82,12 +86,10 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            .fillExtrusionColor(Exp(.match) {
-                Self.roofTone
-                1
-                FacadeTile.roof(palette, tone: 1).cssHex
-                FacadeTile.roof(palette, tone: 0).cssHex
-            })
+            .fillExtrusionColor(Exp.json(BuildingLook.roofColour(fallback: [
+                "match", Self.json(Self.roofTone), 1,
+                FacadeTile.roof(palette, tone: 1).cssHex, FacadeTile.roof(palette, tone: 0).cssHex,
+            ] as [Any])))
             .fillExtrusionBase(Self.capBase)
             .fillExtrusionHeight(Self.height)
             .fillExtrusionOpacity(Self.fadeIn)
@@ -99,10 +101,10 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            .fillExtrusionPattern(Exp(.concat) {
-                "facade-\(palette.id)-"
-                Exp(.toString) { Self.facadeVariant }
-            })
+            // Real OSM façade colour where mapped, else one of the mixed tones.
+            .fillExtrusionPattern(Exp.json(BuildingLook.wallImage({ FacadeTile.osmFacadeID(palette, $0) }, fallback: [
+                "concat", "facade-\(palette.id)-", ["to-string", Self.json(Self.facadeVariant)],
+            ] as [Any])))
             .fillExtrusionHeight(Self.wallTop)
             .fillExtrusionBase(Self.base)
             .fillExtrusionOpacity(Self.fadeIn)
@@ -119,5 +121,22 @@ extension UIColor {
         getRed(&r, green: &g, blue: &b, alpha: &a)
         func c(_ v: CGFloat) -> Int { Int((max(0, min(1, v)) * 255).rounded()) }
         return String(format: "#%02X%02X%02X", c(r), c(g), c(b))
+    }
+}
+
+extension PlainBuildings {
+    /// An `Exp` as plain JSON, to splice into hand-built expressions.
+    static func json(_ e: Exp) -> Any {
+        guard let data = try? JSONEncoder().encode(e) else { return NSNull() }
+        return (try? JSONSerialization.jsonObject(with: data)) ?? NSNull()
+    }
+}
+
+extension Exp {
+    /// Decodes a JSON expression built as nested arrays.
+    static func json(_ value: Any) -> Exp {
+        guard let data = try? JSONSerialization.data(withJSONObject: value, options: [.fragmentsAllowed]),
+              let e = try? JSONDecoder().decode(Exp.self, from: data) else { return Exp(.literal) { 0 } }
+        return e
     }
 }

@@ -14,6 +14,8 @@ struct FacadeTile: MapStyleContent {
 
     static func facadeID(_ p: CityPalette, _ i: Int) -> String { "facade-\(p.id)-\(i)" }
 
+    static func osmFacadeID(_ p: CityPalette, _ hex: String) -> String { "facade-\(p.id)-osm-\(hex.dropFirst())" }
+
     private func facade(_ i: Int) -> StyleImage {
         StyleImage(id: Self.facadeID(palette, i), image: Self.render(palette, variant: i))
     }
@@ -43,6 +45,9 @@ struct FacadeTile: MapStyleContent {
         facade(21)
         facade(22)
         facade(23)
+        ForEvery(BuildingLook.wallColours, id: \.self) { hex in
+            StyleImage(id: Self.osmFacadeID(palette, hex), image: Self.render(palette, variant: 0, wall: UIColor(hexString: hex)))
+        }
     }
 
     // MARK: Colours
@@ -74,12 +79,12 @@ struct FacadeTile: MapStyleContent {
     /// The bay is mostly wall so façades don't turn into a dense window grid.
     /// Style 0: one sash window. Style 1: a pair of narrow windows. Style 2: a tall window under a
     /// light string course, which gives the façade storey bands.
-    static func render(_ p: CityPalette, variant: Int) -> UIImage {
+    static func render(_ p: CityPalette, variant: Int, wall override: UIColor? = nil) -> UIImage {
         let size = CGSize(width: 32.0 / 3, height: 32.0 / 3)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 3
         let tone = variant % tones, style = (variant / tones) % styles
-        let wallColor = wall(p, tone: tone)
+        let wallColor = override ?? wall(p, tone: tone)
         let trim = tone == 4 ? UIColor(white: 0.96, alpha: 0.8) : UIColor(white: 1, alpha: 0.4)
         return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
             wallColor.setFill()
@@ -123,5 +128,12 @@ struct FacadeTile: MapStyleContent {
             return l - c / 2 * max(-1, min(k - 3, 9 - k, 1))
         }
         return UIColor(red: f(0), green: f(8), blue: f(4), alpha: 1)
+    }
+}
+
+extension UIColor {
+    convenience init(hexString: String) {
+        let v = UInt32(hexString.dropFirst(), radix: 16) ?? 0xFFFFFF
+        self.init(hex: v)
     }
 }

@@ -70,9 +70,6 @@ final class Basemap {
             default: patchStreets(&layers[i], id: id, palette)
             }
         }
-        if BuildingLook.restEnabled, let i = layers.firstIndex(where: { $0["id"] as? String == "procedural-buildings" }) {
-            layers.insert(BuildingLook.rest(from: layers[i], palette: palette), at: i + 1)
-        }
         if let i = layers.firstIndex(where: { $0["id"] as? String == "3d-building" }) {
             if !UserDefaults.standard.bool(forKey: "standardPlain") { patchPlainBuildings(&layers, at: i, palette) }
         }
