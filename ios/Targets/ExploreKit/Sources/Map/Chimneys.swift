@@ -29,8 +29,25 @@ final class Chimneys {
         }
     }
 
+    /// `-probe x,y;x,y` (screen points) prints what the building layers have there (look debugging).
+    private func probe(_ map: MapboxMap) {
+        guard let spec = UserDefaults.standard.string(forKey: "probe") else { return }
+        for pair in spec.split(separator: ";") {
+            let v = pair.split(separator: ",").compactMap { Double($0) }
+            guard v.count == 2 else { continue }
+            let pt = CGPoint(x: v[0], y: v[1])
+            _ = map.queryRenderedFeatures(with: CGRect(x: pt.x - 2, y: pt.y - 2, width: 4, height: 4), options: RenderedQueryOptions(layerIds: nil, filter: nil)) { result in
+                guard case .success(let hits) = result else { return }
+                for h in hits.prefix(6) {
+                    print("PROBE", pt, h.queriedFeature.sourceLayer ?? "-", h.layers, String(describing: h.queriedFeature.feature.properties))
+                }
+            }
+        }
+    }
+
     /// Call when the camera settles.
     func refresh(map: MapboxMap) {
+        probe(map)
         let cam = map.cameraState
         guard cam.zoom >= 16.3 else {
             if !lastKey.isEmpty { publish([], map: map); lastKey = "" }
