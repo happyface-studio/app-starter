@@ -28,7 +28,21 @@ struct PlainBuildings: MapStyleContent {
         }
     }
 
-    private static var facadeVariant: Exp { pick(FacadeTile.facadeCount, idWeight: 1, heightWeight: 7) }
+    /// Hospitals, schools, offices and the like are often split into many footprints; giving each
+    /// part its own colour made a patchwork, so they all stay in the palette's sand (tone 0).
+    private static let institutional = [
+        "hospital", "school", "university", "college", "kindergarten", "commercial", "retail", "office",
+        "industrial", "warehouse", "public", "civic", "government", "church", "cathedral", "train_station",
+        "transportation", "parking", "garage", "garages", "hotel", "supermarket", "sports_hall", "stadium",
+    ]
+
+    private static var facadeVariant: Exp {
+        Exp(.switchCase) {
+            Exp(.inExpression) { Exp(.get) { "type" }; Exp(.literal) { institutional } }
+            Exp(.product) { pick(FacadeTile.styles, idWeight: 1, heightWeight: 7); Double(FacadeTile.tones) }
+            pick(FacadeTile.facadeCount, idWeight: 1, heightWeight: 7)
+        }
+    }
     private static var roofTone: Exp { pick(FacadeTile.roofTones, idWeight: 1, heightWeight: 5) }
 
     /// Houses and Gründerzeit blocks (10–32 m): about seven in ten get a slate mansard storey with

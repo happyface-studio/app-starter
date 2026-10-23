@@ -32,7 +32,7 @@ OUT = os.path.join(RES, "frankfurt_detail.geojson")
 DRAWN_HALF = {"residential": 2.5, "unclassified": 2.5, "living_street": 2.3, "tertiary": 3.3,
               "secondary": 3.3, "primary": 3.6, "trunk": 3.9}
 PARK_ON = {"residential", "unclassified", "tertiary"}
-PARK_STEP = 5.6
+PARK_STEP = 6.2   # a car plus a gap; rows stay readable instead of bumper to bumper
 CAR_MODELS = ["car_white"] * 3 + ["car_black"] * 3 + ["car_blue"] * 2 + ["car_red", "car_green", "car_yellow"]
 
 AWNING = {
@@ -217,7 +217,7 @@ def main():
         junctions = [geom[k] for k, nid in enumerate(ids) if degree[nid] > 1 or k in (0, len(ids) - 1)]
         off = DRAWN_HALF[hwy] + 0.55
         for side in (1, -1):
-            parked = random.random() < 0.4
+            parked = random.random() < 0.3
             for (ax, ay), (bx, by) in zip(geom, geom[1:]):
                 seg = math.hypot(bx - ax, by - ay)
                 if seg < PARK_STEP:
@@ -226,7 +226,7 @@ def main():
                 rx, ry = uy * side, -ux * side
                 t = PARK_STEP / 2
                 while t < seg - PARK_STEP / 2:
-                    parked = random.random() < (0.8 if parked else 0.3)
+                    parked = random.random() < (0.7 if parked else 0.18)
                     cx, cy = ax + ux * t, ay + uy * t
                     t += PARK_STEP
                     if not parked:
