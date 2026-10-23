@@ -1,4 +1,4 @@
-import MapboxMaps
+@_spi(Experimental) import MapboxMaps
 import UIKit
 
 /// The open ground between streets and houses: a soft sandy texture over all bare land, soft
@@ -26,6 +26,12 @@ struct Yards: MapStyleContent {
     private static func kind(_ k: String) -> Exp {
         Exp(.eq) { Exp(.get) { "k" }; k }
     }
+
+    private static func kinds(_ ks: [String]) -> Exp {
+        Exp(.match) { Exp(.get) { "k" }; ks; true; false }
+    }
+
+    private var hedge: UIColor { UIColor(hex: palette.green).blended(with: UIColor(hex: 0x2F4A22), amount: 0.45) }
 
     private static var fadeIn: Exp {
         Exp(.interpolate) {
@@ -56,7 +62,7 @@ struct Yards: MapStyleContent {
                 FillLayer(id: "yards-lawn", source: Self.source)
                     .slot(.bottom)
                     .minZoom(14)
-                    .filter(Self.kind("lawn"))
+                    .filter(Self.kinds(["lawn", "front"]))
                     .fillColor(StyleColor(lawn))
                     .fillOpacity(Exp(.interpolate) {
                         Exp(.linear)
@@ -69,10 +75,29 @@ struct Yards: MapStyleContent {
                 FillLayer(id: "yards-lawn-tex", source: Self.source)
                     .slot(.bottom)
                     .minZoom(15)
-                    .filter(Self.kind("lawn"))
+                    .filter(Self.kinds(["lawn", "front"]))
                     .fillPattern("tex-grass")
                     .fillOpacity(0.8)
             }
+
+            FillExtrusionLayer(id: "yards-hedges", source: Self.source)
+                .slot(.middle)
+                .minZoom(16)
+                .filter(Self.kind("hedge"))
+                .fillExtrusionColor(StyleColor(hedge))
+                .fillExtrusionHeight(1.1)
+                .fillExtrusionBase(0)
+                .fillExtrusionEdgeRadius(0.3)
+                .fillExtrusionVerticalGradient(false)
+                .fillExtrusionCastShadows(true)
+                .fillExtrusionOpacity(Exp(.interpolate) {
+                    Exp(.linear)
+                    Exp(.zoom)
+                    16
+                    0
+                    16.4
+                    1
+                })
 
             ModelLayer(id: "yard-trees", source: Self.source)
                 .slot(.middle)

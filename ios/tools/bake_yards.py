@@ -165,7 +165,17 @@ def main():
     # rounds every corner, so patches read as planted lawns rather than leftover shapes.
     soft = gardens.buffer(-1.5, 4).buffer(1.0, 8)
     add(soft, "lawn", tol=0.8, min_area=150)
-    counts = {k: sum(1 for f in features if f["properties"]["k"] == k) for k in ("paved", "garden", "parking", "lawn")}
+
+    # Front gardens: the strip between pavement and house fronts (up to 5 m deep), as lawn, with a
+    # clipped hedge along the pavement edge. Typical for Nordend, Westend and Sachsenhausen.
+    tight = unary_union([p.buffer(0.3, 2) for p in bpolys])
+    reach = roads.buffer(5.0, 4)
+    front = unary_union(areas["block"]).intersection(reach).difference(roads).difference(tight).difference(parking)
+    front = front.buffer(-0.7, 2).buffer(0.7, 2)
+    hedge = front.intersection(roads.buffer(0.9, 4))
+    add(front, "front", tol=0.4, min_area=6)
+    add(hedge, "hedge", tol=0.3, min_area=2)
+    counts = {k: sum(1 for f in features if f["properties"]["k"] == k) for k in ("paved", "garden", "parking", "lawn", "front", "hedge")}
 
     # Garden trees in small clumps (2–5), the way back gardens grow, kept off walls and away from
     # mapped street trees. Single bushes dotted everywhere looked like litter.

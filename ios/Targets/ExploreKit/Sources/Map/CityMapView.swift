@@ -15,6 +15,9 @@ struct CityMapView: View {
     var body: some View {
         if basemap.isResolved || LandmarkMask.isEnabled {
             map
+                .overlay {
+                    if store.is3D && !UserDefaults.standard.bool(forKey: "noTiltShift") { TiltShift(mood: store.mood) }
+                }
         } else {
             Color(UIColor(hex: 0xF2EADF)).ignoresSafeArea()
         }
@@ -43,6 +46,7 @@ struct CityMapView: View {
                     RoofExtras()
                 }
                 StreetTextures()
+                RoadMarkings()
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
                 PuffyTrees(season: LiveConditions.shared.season)
                 StreetFurniture(mood: store.mood)
