@@ -177,16 +177,16 @@ def main():
             continue
         pg = prep(g)
         minx, miny, maxx, maxy = g.bounds
-        step = 11.0
+        step = 15.0
         y = miny + random.uniform(0, step)
         while y < maxy:
             x = minx + random.uniform(0, step)
             while x < maxx:
                 cx, cy = x + random.uniform(-6, 6), y + random.uniform(-6, 6)
                 x += step
-                if random.random() > 0.7 or not pg.contains(Point(cx, cy)) or len(near.query(Point(cx, cy).buffer(4))):
+                if random.random() > 0.6 or not pg.contains(Point(cx, cy)) or len(near.query(Point(cx, cy).buffer(4))):
                     continue
-                for _ in range(random.randint(2, 4)):
+                for _ in range(random.randint(2, 3)):
                     a_, d_ = random.uniform(0, 2 * math.pi), random.uniform(0, 4.5)
                     px, py = cx + math.cos(a_) * d_, cy + math.sin(a_) * d_
                     if not pg.contains(Point(px, py)):
