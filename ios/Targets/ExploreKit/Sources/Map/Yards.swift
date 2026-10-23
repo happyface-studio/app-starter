@@ -11,7 +11,7 @@ struct Yards: MapStyleContent {
 
     static let showsLawns = UserDefaults.standard.string(forKey: "ground") != "gravel"
 
-    private var lawn: UIColor { UIColor(hex: palette.land).blended(with: UIColor(hex: palette.green), amount: 0.38) }
+    private var lawn: UIColor { UIColor(hex: palette.land).blended(with: UIColor(hex: palette.green), amount: 0.78) }
 
     /// One polygon over all of Frankfurt carrying the ground texture; water and parks get solid
     /// fills above it in `GroundTextures`, so only bare land shows the grain.
@@ -71,7 +71,7 @@ struct Yards: MapStyleContent {
                     .minZoom(15)
                     .filter(Self.kind("lawn"))
                     .fillPattern("tex-grass")
-                    .fillOpacity(0.45)
+                    .fillOpacity(0.8)
             }
 
             ModelLayer(id: "yard-trees", source: Self.source)

@@ -163,31 +163,31 @@ def main():
     add(parking, "parking")
     # Soft lawn patches: the gardens shrunk and regrown with round joins, which drops slivers and
     # rounds every corner, so patches read as planted lawns rather than leftover shapes.
-    soft = gardens.buffer(-3.5, 4).buffer(2.5, 8)
+    soft = gardens.buffer(-1.5, 4).buffer(1.0, 8)
     add(soft, "lawn", tol=0.8, min_area=150)
     counts = {k: sum(1 for f in features if f["properties"]["k"] == k) for k in ("paved", "garden", "parking", "lawn")}
 
     # Garden trees in small clumps (2–5), the way back gardens grow, kept off walls and away from
     # mapped street trees. Single bushes dotted everywhere looked like litter.
     near = STRtree([Point(*xy(f["geometry"]["coordinates"][1], f["geometry"]["coordinates"][0])) for f in trees_existing])
-    inner = gardens.buffer(-3.0)
+    inner = gardens.buffer(-2.0)
     n = 0
     for g in getattr(inner, "geoms", [inner]):
         if g.is_empty or g.area < 60:
             continue
         pg = prep(g)
         minx, miny, maxx, maxy = g.bounds
-        step = 24.0
+        step = 11.0
         y = miny + random.uniform(0, step)
         while y < maxy:
             x = minx + random.uniform(0, step)
             while x < maxx:
                 cx, cy = x + random.uniform(-6, 6), y + random.uniform(-6, 6)
                 x += step
-                if random.random() > 0.55 or not pg.contains(Point(cx, cy)) or len(near.query(Point(cx, cy).buffer(7))):
+                if random.random() > 0.7 or not pg.contains(Point(cx, cy)) or len(near.query(Point(cx, cy).buffer(4))):
                     continue
-                for _ in range(random.randint(2, 5)):
-                    a_, d_ = random.uniform(0, 2 * math.pi), random.uniform(0, 5.5)
+                for _ in range(random.randint(2, 4)):
+                    a_, d_ = random.uniform(0, 2 * math.pi), random.uniform(0, 4.5)
                     px, py = cx + math.cos(a_) * d_, cy + math.sin(a_) * d_
                     if not pg.contains(Point(px, py)):
                         continue
