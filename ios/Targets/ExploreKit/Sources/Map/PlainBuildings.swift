@@ -31,12 +31,10 @@ struct PlainBuildings: MapStyleContent {
 
     private static var isPart: Exp { Exp(.eq) { Exp(.get) { "type" }; "building:part" } }
 
-    /// The slate cap is the top 0.4 m *inside* each building, so it never pokes into a part
-    /// stacked on top (that overlap flickered into a checkered roof).
-    static let capDepth: Double = {
-        let v = UserDefaults.standard.double(forKey: "capDepth")
-        return v > 0 ? v : 0.4
-    }()
+    /// The slate cap is the top 1.5 m *inside* each building, so it never pokes into a part stacked
+    /// on top. It has to be this thick: at the zoom levels most views use, a thinner cap and the
+    /// patterned wall top beneath it flicker into a checkered roof.
+    static let capDepth = 1.5
 
     /// Hospitals, schools, offices and the like are often split into many footprints; giving each
     /// part its own colour made a patchwork, so they all stay in the palette's sand (tone 0).
@@ -57,7 +55,7 @@ struct PlainBuildings: MapStyleContent {
 
     /// Houses and Gründerzeit blocks (10–32 m): about seven in ten get a slate mansard storey with
     /// dormers as their top floor, the rest keep a flat roof.
-    static let mansardDepth = 3.2
+    static let mansardDepth = 4.2   // includes the cap, so the slate storey itself is 2.7 m
     private static var hasMansard: Exp {
         Exp(.all) {
             Exp(.gte) { height; 10 }
@@ -118,14 +116,12 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            .fillExtrusionColor(UserDefaults.standard.bool(forKey: "plainCap")
-                ? Exp(.toColor) { FacadeTile.roof(palette, tone: 0).cssHex }
-                : Exp(.match) {
-                    Self.roofTone
-                    1
-                    FacadeTile.roof(palette, tone: 1).cssHex
-                    FacadeTile.roof(palette, tone: 0).cssHex
-                })
+            .fillExtrusionColor(Exp(.match) {
+                Self.roofTone
+                1
+                FacadeTile.roof(palette, tone: 1).cssHex
+                FacadeTile.roof(palette, tone: 0).cssHex
+            })
             .fillExtrusionBase(Self.capBase)
             .fillExtrusionHeight(Self.height)
             .fillExtrusionOpacity(Self.fadeIn)
@@ -137,12 +133,10 @@ struct PlainBuildings: MapStyleContent {
             .slot(.middle)
             .minZoom(15)
             .filter(Self.extruded)
-            .fillExtrusionPattern(UserDefaults.standard.bool(forKey: "plainFacade")
-                ? Exp(.toString) { "facade-\(palette.id)-0" }
-                : Exp(.concat) {
-                    "facade-\(palette.id)-"
-                    Exp(.toString) { Self.facadeVariant }
-                })
+            .fillExtrusionPattern(Exp(.concat) {
+                "facade-\(palette.id)-"
+                Exp(.toString) { Self.facadeVariant }
+            })
             .fillExtrusionHeight(Self.wallTop)
             .fillExtrusionBase(Self.base)
             .fillExtrusionOpacity(Self.fadeIn)

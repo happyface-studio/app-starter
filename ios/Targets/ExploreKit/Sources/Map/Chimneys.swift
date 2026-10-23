@@ -74,14 +74,6 @@ final class Chimneys {
     }
 
     private func build(_ buildings: [Feature], map: MapboxMap, origin: CLLocationCoordinate2D) {
-        if UserDefaults.standard.bool(forKey: "dumpTypes") {
-            var counts: [String: Int] = [:]
-            for b in buildings {
-                let t: String = switch b.properties?["type"] ?? nil { case .string(let s)?: s; default: "nil" }
-                counts[t, default: 0] += 1
-            }
-            print("BUILDING TYPES", counts.sorted { $0.value > $1.value }.prefix(25), "ids:", buildings.prefix(5).map { String(describing: $0.identifier) })
-        }
         var seen = Set<String>()
         var out: [Feature] = []
         func local(_ c: CLLocationCoordinate2D) -> SIMD2<Double> {
