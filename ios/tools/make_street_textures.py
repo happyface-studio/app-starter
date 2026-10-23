@@ -130,17 +130,17 @@ def ground():
     dark, light = (120, 92, 60), (255, 250, 236)
 
     def draw(d, ox, oy):
-        mottle(d, ox, oy, w, h, 26, 16, 40, dark, 8, 16)
-        mottle(d, ox, oy, w, h, 22, 14, 34, light, 10, 20)
+        mottle(d, ox, oy, w, h, 26, 16, 40, dark, 3, 6)
+        mottle(d, ox, oy, w, h, 22, 14, 34, light, 6, 12)
 
     base = tiled((w, h), draw, blur=12)
 
     def gravel(d, ox, oy):
-        for _ in range(1500):
+        for _ in range(900):
             x, y = ox + random.random() * w, oy + random.random() * h
             r = random.uniform(0.4, 1.0)
             is_dark = random.random() < 0.5
-            d.ellipse((x - r, y - r, x + r, y + r), fill=(*(dark if is_dark else light), random.randint(14, 34)))
+            d.ellipse((x - r, y - r, x + r, y + r), fill=(*(dark if is_dark else light), random.randint(6, 14)))
 
     base.alpha_composite(tiled((w, h), gravel, blur=0.3))
     base.save(os.path.join(OUT, "tex_ground@2x.png"))
