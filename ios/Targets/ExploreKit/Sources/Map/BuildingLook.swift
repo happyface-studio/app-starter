@@ -58,11 +58,14 @@ enum BuildingLook {
         return out
     }()
 
-    /// Roof shape our plain buildings get: OSM's where mapped, else houses up to 22 m get a gabled
-    /// (two in three) or hipped roof, everything else flat. Must match `pitchedExp`.
+    /// Roof shape our plain buildings get: OSM's where mapped, else houses up to 22 m get a pitched roof
+    /// (low houses mostly gabled, taller ones hipped), everything else flat. Must match `pitchedExp`.
     static func roofShape(id: Int, height: Double) -> String {
         if let s = roofByID[id] { return s }
         guard height <= 22 else { return "flat" }
+        // Taller town houses get hipped roofs (closest to the mansards they really have); gables
+        // on every one of them made terraces jagged.
+        if height > 12 { return "hipped" }
         return id % 3 == 0 ? "hipped" : "gabled"
     }
 
