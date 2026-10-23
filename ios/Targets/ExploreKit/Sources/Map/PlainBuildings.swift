@@ -95,22 +95,6 @@ struct PlainBuildings: MapStyleContent {
         VectorSource(id: Self.source)
             .url("mapbox://mapbox.mapbox-streets-v8")
 
-        FillExtrusionLayer(id: "plain-buildings", source: Self.source)
-            .sourceLayer("building")
-            .slot(.middle)
-            .minZoom(15)
-            .filter(Self.extruded)
-            .fillExtrusionPattern(Exp(.concat) {
-                "facade-\(palette.id)-"
-                Exp(.toString) { Self.facadeVariant }
-            })
-            .fillExtrusionHeight(Self.wallTop)
-            .fillExtrusionBase(Self.base)
-            .fillExtrusionOpacity(Self.fadeIn)
-            .fillExtrusionVerticalGradient(false)
-            .fillExtrusionAmbientOcclusionIntensity(0.3)
-            .fillExtrusionCastShadows(true)
-
         FillExtrusionLayer(id: "plain-buildings-mansard", source: Self.source)
             .sourceLayer("building")
             .slot(.middle)
@@ -142,6 +126,22 @@ struct PlainBuildings: MapStyleContent {
             .fillExtrusionOpacity(Self.fadeIn)
             .fillExtrusionVerticalGradient(false)
             .fillExtrusionCastShadows(false)
+
+        FillExtrusionLayer(id: "plain-buildings", source: Self.source)
+            .sourceLayer("building")
+            .slot(.middle)
+            .minZoom(15)
+            .filter(Self.extruded)
+            .fillExtrusionPattern(Exp(.concat) {
+                "facade-\(palette.id)-"
+                Exp(.toString) { Self.facadeVariant }
+            })
+            .fillExtrusionHeight(Self.wallTop)
+            .fillExtrusionBase(Self.base)
+            .fillExtrusionOpacity(Self.fadeIn)
+            .fillExtrusionVerticalGradient(false)
+            .fillExtrusionAmbientOcclusionIntensity(0.3)
+            .fillExtrusionCastShadows(true)
     }
 }
 
