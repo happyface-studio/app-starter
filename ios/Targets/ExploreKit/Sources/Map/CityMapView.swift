@@ -36,7 +36,7 @@ struct CityMapView: View {
                 GroundTextures(palette: store.renderPalette)
                 Kerbs(palette: store.renderPalette)
                 FacadeTile(palette: store.renderPalette)
-                if !UserDefaults.standard.bool(forKey: "standardPlain") && !BuildingLook.restEnabled {
+                if !UserDefaults.standard.bool(forKey: "standardPlain")  {
                     PlainBuildings(palette: store.renderPalette)
                 }
                 StreetTextures()

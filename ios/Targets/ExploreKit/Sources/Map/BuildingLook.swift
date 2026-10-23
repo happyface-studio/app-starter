@@ -68,15 +68,14 @@ enum BuildingLook {
         layer["filter"] = ["all", ["==", ["get", "extrude"], "true"], ["==", ["get", "underground"], "false"]] as [Any]
 
         var layout = layer["layout"] as? [String: Any] ?? [:]
-        let house: [Any] = ["all", ["<=", ["get", "height"], 25], ["<=", ["get", "area"], 500]]
         let houseRoof: [Any] = ["case", ["==", ["%", ["to-number", ["id"], 0], 3], 0], "hipped", "gabled"]
-        layout["building-roof-shape"] = roofShape(fallback: ["case", house, houseRoof, "parapet"] as [Any])
-        layout["building-height"] = ["+", ["coalesce", ["get", "est_height"], ["get", "height"]], ["random", 0, 1.8, ["id"]]] as [Any]
+        layout["building-roof-shape"] = roofShape(fallback: ["case", ["<=", ["get", "height"], 22], houseRoof, "flat"] as [Any])
+        // Roof only: our window-pattern walls (`PlainBuildings`) stand below, this adds the roof on top.
+        layout["building-base"] = ["get", "height"] as [Any]
+        layout["building-height"] = ["+", ["get", "height"], ["random", 3.5, 5, ["id"]]] as [Any]
         let wall: [Any] = ["-", ["get", "height"], ["coalesce", ["get", "min_height"], 0]]
-        layout["building-facade"] = [">=", wall, 4] as [Any]
-        layout["building-facade-floors"] = ["max", 1, ["round", ["/", wall, 3.4]]] as [Any]
-        layout["building-facade-window"] = ["literal", [0.5, 0.7]] as [Any]
-        layout["building-facade-unit-width"] = ["random", 2.8, 3.8, ["id"]] as [Any]
+        _ = wall
+        layout["building-facade"] = false
         layer["layout"] = layout
 
         var paint = layer["paint"] as? [String: Any] ?? [:]
