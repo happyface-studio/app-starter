@@ -185,7 +185,7 @@ struct FacadeTile: MapStyleContent {
             if style == 0 {
                 UIColor(white: 0.97, alpha: night ? 0.3 : 0.85).setFill()
                 ctx.fill(CGRect(x: 0.67, y: 2.0, width: size.width - 1.33, height: 7.0))
-                (night ? lit : glass(p).blended(with: .black, amount: 0.15)).setFill()
+                (night ? lit : glass(p).blended(with: .white, amount: 0.18)).setFill()
                 ctx.fill(CGRect(x: 1.0, y: 2.33, width: size.width - 2.0, height: 6.33))
             } else {
                 UIColor(hex: 0x5A4A3C).setFill()

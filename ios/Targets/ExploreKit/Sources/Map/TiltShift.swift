@@ -19,11 +19,11 @@ struct TiltShift: View {
             VStack(spacing: 0) {
                 ZStack {
                     Rectangle().fill(.ultraThinMaterial)
-                    haze.opacity(0.35)
+                    haze.opacity(0.22)
                 }
                 .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black.opacity(0.7), location: 0.35),
                                              .init(color: .clear, location: 1)], startPoint: .top, endPoint: .bottom))
-                .frame(height: geo.size.height * 0.3)
+                .frame(height: geo.size.height * 0.26)
                 Spacer(minLength: 0)
                 Rectangle().fill(.ultraThinMaterial)
                     .mask(LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .top, endPoint: .bottom))

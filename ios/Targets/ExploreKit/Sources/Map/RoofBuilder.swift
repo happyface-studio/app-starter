@@ -141,6 +141,10 @@ final class RoofBuilder {
         }
         var a = extent(u), b = extent(v)
         if a.upperBound - a.lowerBound < b.upperBound - b.lowerBound { swap(&u, &v); swap(&a, &b) }
+        // Narrow, deep terrace houses (Gründerzeit plots) have the ridge parallel to the street, i.e.
+        // across the long side; detached houses keep it along the long side.
+        let long = a.upperBound - a.lowerBound, short = b.upperBound - b.lowerBound
+        if short < 14, long > 15, long > short * 1.2 { swap(&u, &v); swap(&a, &b) }
         return (c, u, v, a, b)
     }
 
@@ -150,8 +154,8 @@ final class RoofBuilder {
         let halfW = (f.b.upperBound - f.b.lowerBound) / 2, bMid = (f.b.upperBound + f.b.lowerBound) / 2
         let halfL = (f.a.upperBound - f.a.lowerBound) / 2, aMid = (f.a.upperBound + f.a.lowerBound) / 2
         guard halfW > 1.5 else { return }
-        let rise = min(halfW * 0.85, 5.5)
-        let tiers = 4
+        let rise = min(halfW * 0.8, 5.5)
+        let tiers = 6
         let step = rise / Double(tiers)
         for k in 0..<tiers {
             let w = halfW * Double(tiers - k) / Double(tiers)
