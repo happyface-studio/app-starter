@@ -36,7 +36,9 @@ struct CityMapView: View {
                 GroundTextures(palette: store.renderPalette)
                 Kerbs(palette: store.renderPalette)
                 FacadeTile(palette: store.renderPalette)
-                PlainBuildings(palette: store.renderPalette)
+                if !UserDefaults.standard.bool(forKey: "standardPlain") {
+                    PlainBuildings(palette: store.renderPalette)
+                }
                 StreetTextures()
                 CloudShadows(mood: store.mood, sky: LiveConditions.shared.sky)
                 PuffyTrees(season: LiveConditions.shared.season)

@@ -70,7 +70,7 @@ final class Basemap {
             }
         }
         if let i = layers.firstIndex(where: { $0["id"] as? String == "3d-building" }) {
-            patchPlainBuildings(&layers, at: i, palette)
+            if !UserDefaults.standard.bool(forKey: "standardPlain") { patchPlainBuildings(&layers, at: i, palette) }
         }
         style["layers"] = layers
         patchDaylight(&style)
