@@ -32,6 +32,7 @@ struct CityMapView: View {
                 PastelBlocks()
             }
             if !LandmarkMask.isEnabled {
+                Yards(palette: store.renderPalette)
                 GroundTextures(palette: store.renderPalette)
                 Kerbs(palette: store.renderPalette)
                 FacadeTile(palette: store.renderPalette)

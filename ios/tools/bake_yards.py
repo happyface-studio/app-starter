@@ -154,14 +154,14 @@ def main():
             continue
         pg = prep(g)
         minx, miny, maxx, maxy = g.bounds
-        step = 13.0
+        step = 15.0
         y = miny + random.uniform(0, step)
         while y < maxy:
             x = minx + random.uniform(0, step)
             while x < maxx:
                 px, py = x + random.uniform(-4, 4), y + random.uniform(-4, 4)
                 x += step
-                if random.random() > 0.5 or not pg.contains(Point(px, py)):
+                if random.random() > 0.2 or not pg.contains(Point(px, py)):
                     continue
                 if len(near.query(Point(px, py).buffer(5))) or any(math.hypot(px - a, py - b) < 6 for a, b in placed[-40:]):
                     continue
